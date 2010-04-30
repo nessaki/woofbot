@@ -138,7 +138,7 @@ namespace Jarilo
             if (Conf.SimHandle != 0 && Client.Network.CurrentSim.Handle != Conf.SimHandle)
             {
                 Vector3 tpPos;
-                if (Conf.PosInSim == null)
+                if (Conf.PosInSim == Vector3.Zero)
                 {
                     tpPos = new Vector3(128, 128, 30);
                 }
