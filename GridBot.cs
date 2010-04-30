@@ -272,7 +272,7 @@ namespace Jarilo
         {
             StatusMsg(e.IM.Dialog + "(" + e.IM.FromAgentName + "): " + e.IM.Message);
 
-            if (!MainConf.IsMaster(e.IM.FromAgentID))
+            if (!MainConf.IsMaster(e.IM.FromAgentName))
             {
                 return;
             }
@@ -290,6 +290,9 @@ namespace Jarilo
                         break;
                     case InstantMessageDialog.MessageFromAgent:
                         ProcessMessage(e.IM);
+                        break;
+                    case InstantMessageDialog.GroupInvitation:
+                        Client.Self.InstantMessage(Client.Self.Name, e.IM.FromAgentID, string.Empty, e.IM.IMSessionID, InstantMessageDialog.GroupInvitationAccept, InstantMessageOnline.Online, Vector3.Zero, UUID.Zero, null);
                         break;
                 }
             });
@@ -333,7 +336,36 @@ namespace Jarilo
                     ReplyIm(im, "Rebaking texture, please wait, this can take a while");
                     Client.Appearance.RequestSetAppearance(true);
                     break;
+                case "groupinfo":
+                    GetGroupInfo(im);
+                    break;
+                case "groupactivate":
+                    UUID group = UUID.Zero;
+                    try { UUID.TryParse(im.Message.Split(' ')[1].Trim(), out group); }
+                    catch { }
+                    Client.Groups.ActivateGroup(group);
+                    ReplyIm(im, "Activated group with uuid: " + group.ToString());
+                    break;
             }
+        }
+
+        void GetGroupInfo(InstantMessage im)
+        {
+            ReplyIm(im, "Getting my groups...");
+            ManualResetEvent finished = new ManualResetEvent(false);
+
+            EventHandler<CurrentGroupsEventArgs> handler = (object sender, CurrentGroupsEventArgs e) =>
+                {
+                    foreach (var group in e.Groups)
+                    {
+                        ReplyIm(im, string.Format("{0} - {1}", group.Key, group.Value.Name));
+                    }
+                    finished.Set();
+                };
+            Client.Groups.CurrentGroups += handler;
+            Client.Groups.RequestCurrentGroups();
+            finished.WaitOne(30 * 1000);
+            Client.Groups.CurrentGroups -= handler;
         }
 
         void Network_SimChanged(object sender, SimChangedEventArgs e)

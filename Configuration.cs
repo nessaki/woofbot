@@ -209,5 +209,10 @@ namespace Jarilo
             return masters.ContainsKey(key);
         }
 
+        public bool IsMaster(string name)
+        {
+            return masters.ContainsValue(name);
+        }
+
     }
 }
