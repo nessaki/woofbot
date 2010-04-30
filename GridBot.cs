@@ -275,7 +275,7 @@ namespace Jarilo
             foreach (var bridge in MainConf.Bridges.FindAll((BridgeInfo b) => { return b.Bot == Conf; }))
             {
                 IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServer; });
-                if (ircbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero)
+                if (ircbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
                 {
                     ircbot.RelayMessage(bridge, e.IM.FromAgentName, e.IM.Message);
                     if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID))
