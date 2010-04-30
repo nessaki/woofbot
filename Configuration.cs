@@ -42,8 +42,9 @@ namespace Jarilo
     /// <summary>
     /// Holds parsed config file configuration
     /// </summary>
-    class BotInfo
+    public class BotInfo
     {
+        public string ID { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Password { get; set; }
@@ -64,58 +65,219 @@ namespace Jarilo
         }
     }
 
-    class Configuration
+    public class IrcServerInfo
     {
-        string confPath;
-        public Dictionary<UUID, string> masters = new Dictionary<UUID,string>();
-        public List<BotInfo> bots = new List<BotInfo>();
-        public Dictionary<string, ulong> regions = new Dictionary<string, ulong>();
+        public string ID { get; set; }
+        public string ServerHost { get; set; }
+        public int ServerPort { get; set; }
+        public string Nick { get; set; }
+        public string Username { get; set; }
+        public Dictionary<string, string> Channels { get; set; }
+
+        public IrcServerInfo()
+        {
+            ServerPort = 6667;
+            Channels = new Dictionary<string, string>();
+        }
+    }
+
+    public class BridgeInfo
+    {
+        public string ID { get; set; }
+        public BotInfo Bot { get; set; }
+        public UUID GridGroup { get; set; }
+        public IrcServerInfo IrcServer { get; set; }
+        public string IrcChan { get; set; }
+    }
+
+    public class Configuration
+    {
+        string ConfPath;
+        public Dictionary<UUID, string> Masters = new Dictionary<UUID, string>();
+        public List<BotInfo> Bots = new List<BotInfo>();
+        public List<IrcServerInfo> IrcServers = new List<IrcServerInfo>();
+        public List<BridgeInfo> Bridges = new List<BridgeInfo>();
+        public Dictionary<string, ulong> Regions = new Dictionary<string, ulong>();
         IniConfigSource inifile;
 
         public Configuration(string conf)
         {
-            confPath = conf;
-            inifile = new IniConfigSource(confPath + "/jarilo.conf");
+            ConfPath = conf;
+            inifile = new IniConfigSource(ConfPath + "/jarilo.conf");
             inifile.CaseSensitive = false;
-            LoadMastersAndBots();
+            LoadConfFile();
             LoadRegions();
+        }
+
+        public void LoadConfFile()
+        {
+            Masters.Clear();
+            Bots.Clear();
+
+            foreach (IniConfig conf in inifile.Configs)
+            {
+                string[] head = Regex.Split(conf.Name, @"\s*:\s*");
+                if (head.Length < 2)
+                {
+                    Console.WriteLine("Invalid section name {0}, expected format type:id", conf.Name);
+                    continue;
+                }
+
+                string type = head[0];
+                string id = head[1];
+
+                if (type == "master")
+                {
+                    try
+                    {
+                        UUID masterId = (UUID)conf.Get("uuid");
+                        string masterName = conf.Get("name");
+                        if (masterId != UUID.Zero)
+                        {
+                            Masters.Add(masterId, masterName);
+                        }
+                    }
+                    catch (Exception) { }
+                }
+                else if (type == "bot")
+                {
+                    try
+                    {
+                        BotInfo b = new BotInfo();
+                        b.ID = id;
+                        b.FirstName = conf.Get("first_name");
+                        b.LastName = conf.Get("last_name");
+                        b.Password = conf.Get("password");
+                        if (string.IsNullOrEmpty(b.FirstName) || string.IsNullOrEmpty(b.LastName) || string.IsNullOrEmpty(b.Password)) throw new Exception("Incomplete bot information, fist_name, last_name and password are required");
+                        b.SitOn = (UUID)conf.Get("sit_on");
+                        b.Sim = conf.Get("sim");
+                        try
+                        {
+                            float pos_x = conf.GetFloat("pos_x");
+                            float pos_y = conf.GetFloat("pos_y");
+                            float pos_z = conf.GetFloat("pos_z");
+                            if (!string.IsNullOrEmpty(b.Sim))
+                            {
+                                b.PosInSim = new Vector3(pos_x, pos_y, pos_z);
+                            }
+                        }
+                        catch (Exception) { }
+                        if (conf.Contains("login_uri"))
+                        {
+                            b.LoginURI = conf.Get("login_uri");
+                        }
+                        Bots.Add(b);
+                    }
+                    catch (Exception) { }
+                }
+                else if (type == "ircserver")
+                {
+                    try
+                    {
+                        IrcServerInfo si = new IrcServerInfo();
+                        si.ID = id;
+                        si.ServerHost = conf.GetString("irc_server");
+                        si.ServerPort = conf.GetInt("irc_port", 6667);
+                        si.Nick = conf.GetString("irc_nick");
+                        si.Username = si.Nick;
+                        if (conf.Contains("irc_username"))
+                            si.Username = conf.GetString("irc_username");
+                        IrcServers.Add(si);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed parsing section {0}: {1}", conf.Name, ex.Message);
+                    }
+                }
+                else if (type == "ircchan")
+                {
+                    try
+                    {
+                        string server_id = conf.GetString("irc_server");
+                        IrcServerInfo si = IrcServers.Find((IrcServerInfo s) => { return s.ID == server_id; });
+                        if (si == null)
+                        {
+                            Console.WriteLine("Waringing, unkown server in section [{0}]", conf.Name);
+                            continue;
+                        }
+                        si.Channels[id] = conf.GetString("chan_name");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed parsing section {0}: {1}", conf.Name, ex.Message);
+                    }
+                }
+                else if (type == "bridge")
+                {
+                    try
+                    {
+                        BridgeInfo bi = new BridgeInfo();
+                        bi.ID = id;
+                        bi.IrcChan = conf.GetString("ircchan");
+                        bi.IrcServer = IrcServers.Find((IrcServerInfo s) => { return s.Channels.ContainsKey(bi.IrcChan); });
+                        UUID groupID;
+                        UUID.TryParse(conf.GetString("grid_group"), out groupID);
+                        bi.GridGroup = groupID;
+                        bi.Bot = Bots.Find((BotInfo b) => { return b.ID == conf.GetString("bot"); });
+                        Bridges.Add(bi);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed parsing section {0}: {1}", conf.Name, ex.Message);
+                    }
+                }
+
+
+            }
         }
 
         public void LoadRegions()
         {
-            regions = new Dictionary<string,ulong>();
+            Regions = new Dictionary<string, ulong>();
 
-            try {
-                StreamReader reader = new StreamReader(confPath + "/regions.txt");
+            try
+            {
+                StreamReader reader = new StreamReader(ConfPath + "/regions.txt");
                 Regex splitter = new Regex(@"[\t ]*=[\t ]*", RegexOptions.Compiled);
 
-                while (!reader.EndOfStream) {
+                while (!reader.EndOfStream)
+                {
                     string line = reader.ReadLine();
                     string[] args = splitter.Split(line.Trim(), 2);
-                    if (args.Length >= 2) {
+                    if (args.Length >= 2)
+                    {
                         ulong handle = 0;
-                        try {
+                        try
+                        {
                             handle = ulong.Parse(args[1]);
 
-                        } catch (Exception) {
                         }
-                        if (handle > 0 && !regions.ContainsKey(args[0])) {
-                            regions.Add(args[0].ToLower(), handle);
+                        catch (Exception)
+                        {
+                        }
+                        if (handle > 0 && !Regions.ContainsKey(args[0]))
+                        {
+                            Regions.Add(args[0].ToLower(), handle);
                         }
                     }
                 }
-            } catch (Exception) { }
+            }
+            catch (Exception) { }
         }
 
         public void SaveRegions()
         {
-            try {
-                StreamWriter wr = new StreamWriter(confPath + "/regions.txt");
-                foreach (KeyValuePair<string, ulong> r in regions) {
+            try
+            {
+                StreamWriter wr = new StreamWriter(ConfPath + "/regions.txt");
+                foreach (KeyValuePair<string, ulong> r in Regions)
+                {
                     wr.WriteLine(r.Key + "=" + r.Value);
                 }
                 wr.Close();
-            } catch (Exception) {
+            }
+            catch (Exception)
+            {
                 Logger.Log("Failed to save regions handle cache.", Helpers.LogLevel.Warning);
             }
         }
@@ -123,95 +285,62 @@ namespace Jarilo
         public ulong GetRegionHandle(string name)
         {
             ulong handle;
-            if (regions.TryGetValue(name.ToLower(), out handle)) {
+            if (Regions.TryGetValue(name.ToLower(), out handle))
+            {
                 return handle;
-            } else {
+            }
+            else
+            {
                 return 0;
             }
         }
 
         public void SaveCachedRegionHandle(string name, ulong handle)
         {
-            lock (regions) {
-                if (!regions.ContainsKey(name.ToLower())) {
-                    regions.Add(name.ToLower(), handle);
+            lock (Regions)
+            {
+                if (!Regions.ContainsKey(name.ToLower()))
+                {
+                    Regions.Add(name.ToLower(), handle);
                     SaveRegions();
                 }
             }
         }
 
-        public void LoadMastersAndBots()
-        {
-            masters.Clear();
-            bots.Clear();
-
-            foreach (IniConfig conf in inifile.Configs) {
-                if (conf.Name.StartsWith("master", false, System.Globalization.CultureInfo.InvariantCulture)) {
-                    try {
-                        UUID masterId = (UUID)conf.Get("uuid");
-                        string masterName = conf.Get("name");
-                        if (masterId != UUID.Zero) {
-                            masters.Add(masterId, masterName);
-                        }
-                    } catch (Exception) { }
-                } else if (conf.Name.StartsWith("bot", false, System.Globalization.CultureInfo.InvariantCulture)) {
-                    try {
-                        BotInfo b = new BotInfo();
-                        b.FirstName = conf.Get("first_name");
-                        b.LastName = conf.Get("last_name");
-                        b.Password = conf.Get("password");
-                        if (string.IsNullOrEmpty(b.FirstName) || string.IsNullOrEmpty(b.LastName) || string.IsNullOrEmpty(b.Password)) throw new Exception("Incomplete bot information, fist_name, last_name and password are required");
-                        b.SitOn = (UUID)conf.Get("sit_on");
-                        b.Sim = conf.Get("sim");
-                        try {
-                            float pos_x = conf.GetFloat("pos_x");
-                            float pos_y = conf.GetFloat("pos_y");
-                            float pos_z = conf.GetFloat("pos_z");
-                            if (!string.IsNullOrEmpty(b.Sim)) {
-                                b.PosInSim = new Vector3(pos_x, pos_y, pos_z);
-                            }
-                        } catch (Exception) { }
-                        if (conf.Contains("login_uri"))
-                        {
-                            b.LoginURI = conf.Get("login_uri");
-                        }
-                        bots.Add(b);
-                    } catch (Exception) { }
-                }
-            }
-        }
-
-
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("Masters ({0})\n", masters.Count);
-            foreach (KeyValuePair<UUID, string> master in masters) {
+            sb.AppendFormat("Masters ({0})\n", Masters.Count);
+            foreach (KeyValuePair<UUID, string> master in Masters)
+            {
                 sb.AppendFormat("{1} ({0})\n", master.Key, master.Value);
             }
-            sb.AppendFormat("Bots ({0})\n", bots.Count);
-            foreach (BotInfo b in bots) {
-                sb.AppendFormat("{0} {1}",b.FirstName, b.LastName);
-                if (!string.IsNullOrEmpty(b.Sim)) {
+            sb.AppendFormat("Bots ({0})\n", Bots.Count);
+            foreach (BotInfo b in Bots)
+            {
+                sb.AppendFormat("{0} {1}", b.FirstName, b.LastName);
+                if (!string.IsNullOrEmpty(b.Sim))
+                {
                     sb.AppendFormat("; keep in region: {0}", b.Sim);
                 }
-                if (b.SitOn != UUID.Zero) {
+                if (b.SitOn != UUID.Zero)
+                {
                     sb.AppendFormat("; sit on: {0}", b.SitOn);
                 }
                 sb.AppendLine();
             }
-            sb.AppendFormat("Region handles ({0})\n", regions.Count);
+            sb.AppendFormat("Region handles ({0})\n", Regions.Count);
             return sb.ToString();
         }
 
         public bool IsMaster(UUID key)
         {
-            return masters.ContainsKey(key);
+            return Masters.ContainsKey(key);
         }
 
         public bool IsMaster(string name)
         {
-            return masters.ContainsValue(name);
+            return Masters.ContainsValue(name);
         }
 
     }

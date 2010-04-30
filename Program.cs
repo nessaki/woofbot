@@ -37,11 +37,13 @@ using OpenMetaverse;
 
 namespace Jarilo
 {
-    class Program
+    public class Program
     {
         string cmd;
         public Configuration conf;
-        List<GridBot> bots;
+        public List<GridBot> GridBots;
+        public List<IrcBot> IrcBots;
+        public static string Version = "Jarilo 0.1";
 
         static void Main(string[] args)
         {
@@ -52,7 +54,7 @@ namespace Jarilo
         public int OnlineBots()
         {
             int nr = 0;
-            foreach (GridBot bot in bots)
+            foreach (GridBot bot in GridBots)
             {
                 if (bot.Connected)
                 {
@@ -64,7 +66,7 @@ namespace Jarilo
 
         public int TotalBots()
         {
-            return bots.Count;
+            return GridBots.Count;
         }
 
         void DisplayPrompt()
@@ -74,7 +76,21 @@ namespace Jarilo
 
         public void CmdStartup()
         {
-            foreach (GridBot bot in bots)
+            foreach (IrcBot bot in IrcBots)
+            {
+                if (!bot.irc.IsConnected)
+                {
+                    bot.Connect();
+                }
+                else
+                {
+                    Console.WriteLine("Irc bot {0} already connected, skipping", bot.Conf.ID);
+                }
+            }
+
+            //return;
+
+            foreach (GridBot bot in GridBots)
             {
                 if (!bot.Connected)
                 {
@@ -91,7 +107,12 @@ namespace Jarilo
 
         public void CmdShutdown()
         {
-            foreach (GridBot bot in bots)
+            foreach (IrcBot bot in IrcBots)
+            {
+                bot.Dispose();
+            }
+
+            foreach (GridBot bot in GridBots)
             {
                 if (bot.Connected)
                 {
@@ -110,7 +131,7 @@ namespace Jarilo
         {
             ThreadPool.QueueUserWorkItem(sync =>
             {
-                foreach (GridBot bot in bots)
+                foreach (GridBot bot in GridBots)
                 {
                     if (bot.Connected)
                     {
@@ -126,7 +147,7 @@ namespace Jarilo
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("Masters:");
-            foreach (KeyValuePair<UUID, string> master in conf.masters)
+            foreach (KeyValuePair<UUID, string> master in conf.Masters)
             {
                 sb.AppendLine(master.Value + " " + master.Key);
             }
@@ -134,7 +155,7 @@ namespace Jarilo
             sb.AppendLine();
             sb.AppendLine("Bots:");
 
-            foreach (GridBot bot in bots)
+            foreach (GridBot bot in GridBots)
             {
                 sb.Append(bot.Conf.Name);
                 if (!bot.Connected)
@@ -146,64 +167,6 @@ namespace Jarilo
                     sb.AppendLine(" is in " + bot.Client.Network.CurrentSim.Name + " at " + bot.Position);
                 }
             }
-            System.Console.WriteLine(sb.ToString());
-            return sb.ToString();
-        }
-
-        public string CmdReload()
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("Reloading configuration...");
-            conf = new Configuration(@"./");
-
-            foreach (BotInfo b in conf.bots)
-            {
-                GridBot bot = bots.Find((GridBot searchBot) =>
-                    {
-                        return (b.FirstName == searchBot.Conf.FirstName && b.LastName == searchBot.Conf.LastName);
-                    }
-                );
-
-                if (bot == null)
-                {
-                    bot = new GridBot(this, b, conf);
-                    sb.AppendLine("Added new bot: " + bot.Conf.Name);
-                    bots.Add(bot);
-                }
-                else
-                {
-                    bot.SetBotInfo(b);
-                }
-
-            }
-
-            List<GridBot> removeBots = new List<GridBot>();
-
-            foreach (GridBot bot in bots)
-            {
-                BotInfo b = conf.bots.Find((BotInfo searchBI) =>
-                    {
-                        return searchBI.FirstName == bot.Conf.FirstName && searchBI.LastName == bot.Conf.LastName;
-                    }
-                );
-                if (b == null)
-                {
-                    removeBots.Add(bot);
-                }
-            }
-
-            foreach (GridBot bot in removeBots)
-            {
-                sb.AppendLine("Removed bot: " + bot.Conf.Name);
-                bots.Remove(bot);
-                if (bot.Connected)
-                {
-                    bot.Logout();
-                }
-                bot.Dispose();
-            }
-
-            System.Console.WriteLine(conf);
             System.Console.WriteLine(sb.ToString());
             return sb.ToString();
         }
@@ -228,9 +191,6 @@ namespace Jarilo
                     case "status":
                         CmdStatus();
                         break;
-                    case "reload":
-                        CmdReload();
-                        break;
                     case "appearance":
                         SetAppearance(false);
                         break;
@@ -243,8 +203,8 @@ namespace Jarilo
 
         void Run(string[] args)
         {
-            Logger.Log("Jarilo 0.1 starting up", Helpers.LogLevel.Info);
-            System.Console.WriteLine("Jarilo 0.1 starting up");
+            Logger.Log(Version + " starting up", Helpers.LogLevel.Info);
+            System.Console.WriteLine(Version + " starting up");
             
             try { conf = new Configuration(@"./"); }
             catch (Exception ex)
@@ -254,11 +214,18 @@ namespace Jarilo
             }
 
             System.Console.WriteLine("Configuration loaded:\n" + conf);
-            bots = new List<GridBot>();
+            GridBots = new List<GridBot>();
 
-            foreach (BotInfo b in conf.bots)
+            foreach (BotInfo b in conf.Bots)
             {
-                bots.Add(new GridBot(this, b, conf));
+                GridBots.Add(new GridBot(this, b, conf));
+            }
+
+            IrcBots = new List<IrcBot>();
+
+            foreach (IrcServerInfo b in conf.IrcServers)
+            {
+                IrcBots.Add(new IrcBot(this, b, conf));
             }
 
             if (args.Length > 0)

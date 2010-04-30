@@ -36,7 +36,7 @@ using OpenMetaverse;
 
 namespace Jarilo
 {
-    class GridBot : IDisposable
+    public class GridBot : IDisposable, IRelay
     {
         public GridClient Client = new GridClient();
         public BotInfo Conf;
@@ -272,6 +272,18 @@ namespace Jarilo
         {
             StatusMsg(e.IM.Dialog + "(" + e.IM.FromAgentName + "): " + e.IM.Message);
 
+            foreach (var bridge in MainConf.Bridges.FindAll((BridgeInfo b) => { return b.Bot == Conf; }))
+            {
+                IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServer; });
+                if (ircbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero)
+                {
+                    ircbot.RelayMessage(bridge, e.IM.FromAgentName, e.IM.Message);
+                    if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID))
+                        Client.Self.RequestJoinGroupChat(e.IM.IMSessionID);
+                }
+            }
+
+
             if (!MainConf.IsMaster(e.IM.FromAgentName))
             {
                 return;
@@ -298,6 +310,39 @@ namespace Jarilo
             });
         }
 
+        public void RelayMessage(BridgeInfo bridge, string from, string msg)
+        {
+            if (!Client.Network.Connected) return; 
+
+            ThreadPool.QueueUserWorkItem(sync =>
+                {
+                    UUID groupID = bridge.GridGroup;
+                    if (!Client.Self.GroupChatSessions.ContainsKey(groupID))
+                    {
+                        ManualResetEvent joined = new ManualResetEvent(false);
+                        EventHandler<GroupChatJoinedEventArgs> handler = (object sender, GroupChatJoinedEventArgs e) =>
+                            {
+                                if (e.SessionID == groupID)
+                                {
+                                    joined.Set();
+                                    Logger.Log(string.Format("{0} group chat {1}", e.Success ? "Successfully joined" : "Failed to join", groupID), Helpers.LogLevel.Info);
+                                }
+                            };
+
+                        Client.Self.GroupChatJoined += handler;
+                        Client.Self.RequestJoinGroupChat(groupID);
+                        joined.WaitOne(30 * 1000);
+                        Client.Self.GroupChatJoined -= handler;
+                        Client.Self.InstantMessageGroup(groupID, string.Format("{0}: {1}", from, msg));
+                    }
+                    else
+                    {
+                        Client.Self.InstantMessageGroup(groupID, string.Format("{0}: {1}", from, msg));
+                    }
+                }
+            );
+        }
+
         void ReplyIm(InstantMessage im, string msg)
         {
             Client.Self.InstantMessage(im.FromAgentID, msg, im.IMSessionID);
@@ -321,9 +366,6 @@ namespace Jarilo
                 case "shutdown":
                     ReplyIm(im, "Logging off all bots.");
                     MainProgram.CmdShutdown();
-                    break;
-                case "reload":
-                    ReplyIm(im, MainProgram.CmdReload());
                     break;
                 case "status":
                     ReplyIm(im, MainProgram.CmdStatus());
@@ -410,7 +452,7 @@ namespace Jarilo
             ThreadPool.QueueUserWorkItem(sync =>
             {
                 InitializeClient();
-                bool success = Client.Network.Login(Conf.FirstName, Conf.LastName, Conf.Password, "Jarilo", "last", "Jarilo 0.1");
+                bool success = Client.Network.Login(Conf.FirstName, Conf.LastName, Conf.Password, "Jarilo", "last", Program.Version);
                 if (success)
                 {
                     UpdateSimHandle();

@@ -50,7 +50,7 @@
     <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL" />
     <Reference Include="Meebey.SmartIrc4net, Version=0.4.0.29113, Culture=neutral, processorArchitecture=x86" />
     <Reference Include="Nini, Version=1.1.0.0, Culture=neutral, PublicKeyToken=691faec150a7fa7b, processorArchitecture=MSIL" />
-    <Reference Include="OpenMetaverse, Version=0.0.0.22056, Culture=neutral, processorArchitecture=x86" />
+    <Reference Include="OpenMetaverse, Version=0.0.0.28114, Culture=neutral, processorArchitecture=x86" />
     <Reference Include="OpenMetaverse.StructuredData, Version=0.0.0.0, Culture=neutral, processorArchitecture=x86" />
     <Reference Include="OpenMetaverseTypes, Version=0.0.0.0, Culture=neutral, processorArchitecture=x86" />
     <Reference Include="System" />
@@ -69,6 +69,8 @@
   <ItemGroup>
     <Compile Include="Configuration.cs" />
     <Compile Include="GridBot.cs" />
+    <Compile Include="IRelay.cs" />
+    <Compile Include="IrcBot.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
