@@ -81,6 +81,21 @@ namespace Jarilo
         }
     }
 
+    public class XmppServerInfo
+    {
+        public string ID { get; set; }
+        public string User { get; set; }
+        public string Domain { get; set; }
+        public string Password { get; set; }
+        public string NetworkHost { get; set; }
+        public Dictionary<string, string> Conferences { get; set; }
+
+        public XmppServerInfo()
+        {
+            Conferences = new Dictionary<string, string>();
+        }
+    }
+
     public class BridgeInfo
     {
         public string ID { get; set; }
@@ -96,7 +111,9 @@ namespace Jarilo
         public Dictionary<UUID, string> Masters = new Dictionary<UUID, string>();
         public List<BotInfo> Bots = new List<BotInfo>();
         public List<IrcServerInfo> IrcServers = new List<IrcServerInfo>();
+        public List<XmppServerInfo> XmppServers = new List<XmppServerInfo>();
         public List<BridgeInfo> Bridges = new List<BridgeInfo>();
+
         public Dictionary<string, ulong> Regions = new Dictionary<string, ulong>();
         IniConfigSource inifile;
 
@@ -201,6 +218,41 @@ namespace Jarilo
                             continue;
                         }
                         si.Channels[id] = conf.GetString("chan_name");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed parsing section {0}: {1}", conf.Name, ex.Message);
+                    }
+                }
+                else if (type == "xmppserver")
+                {
+                    try
+                    {
+                        XmppServerInfo si = new XmppServerInfo();
+                        si.ID = id;
+                        si.User = conf.GetString("xmpp_user");
+                        si.Domain = conf.GetString("xmpp_domain");
+                        si.NetworkHost = conf.GetString("xmpp_server");
+                        si.Password = conf.GetString("xmpp_password");
+                        XmppServers.Add(si);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed parsing section {0}: {1}", conf.Name, ex.Message);
+                    }
+                }
+                else if (type == "xmppconference")
+                {
+                    try
+                    {
+                        string server_id = conf.GetString("xmpp_server");
+                        XmppServerInfo si = XmppServers.Find((XmppServerInfo s) => { return s.ID == server_id; });
+                        if (si == null)
+                        {
+                            Console.WriteLine("Waringing, unkown server in section [{0}]", conf.Name);
+                            continue;
+                        }
+                        si.Conferences[id] = conf.GetString("conference");
                     }
                     catch (Exception ex)
                     {

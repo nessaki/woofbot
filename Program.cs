@@ -43,6 +43,8 @@ namespace Jarilo
         public Configuration conf;
         public List<GridBot> GridBots;
         public List<IrcBot> IrcBots;
+        public List<XmppBot> XmppBots;
+
         public static string Version = "Jarilo 0.1";
 
         static void Main(string[] args)
@@ -76,6 +78,11 @@ namespace Jarilo
 
         public void CmdStartup()
         {
+            foreach (XmppBot bot in XmppBots)
+            {
+                bot.Connect();
+            }
+            return;
             foreach (IrcBot bot in IrcBots)
             {
                 if (!bot.irc.IsConnected)
@@ -87,8 +94,6 @@ namespace Jarilo
                     Console.WriteLine("Irc bot {0} already connected, skipping", bot.Conf.ID);
                 }
             }
-
-            //return;
 
             foreach (GridBot bot in GridBots)
             {
@@ -107,6 +112,11 @@ namespace Jarilo
 
         public void CmdShutdown()
         {
+            foreach (XmppBot bot in XmppBots)
+            {
+                bot.Dispose();
+            }
+
             foreach (IrcBot bot in IrcBots)
             {
                 bot.Dispose();
@@ -205,7 +215,7 @@ namespace Jarilo
         {
             Logger.Log(Version + " starting up", Helpers.LogLevel.Info);
             System.Console.WriteLine(Version + " starting up");
-            
+
             try { conf = new Configuration(@"./"); }
             catch (Exception ex)
             {
@@ -214,19 +224,25 @@ namespace Jarilo
             }
 
             System.Console.WriteLine("Configuration loaded:\n" + conf);
-            GridBots = new List<GridBot>();
 
+            GridBots = new List<GridBot>();
             foreach (BotInfo b in conf.Bots)
             {
                 GridBots.Add(new GridBot(this, b, conf));
             }
 
             IrcBots = new List<IrcBot>();
-
             foreach (IrcServerInfo b in conf.IrcServers)
             {
                 IrcBots.Add(new IrcBot(this, b, conf));
             }
+
+            XmppBots = new List<XmppBot>();
+            foreach(XmppServerInfo b in conf.XmppServers)
+            {
+                XmppBots.Add(new XmppBot(this, b, conf));
+            }
+
 
             if (args.Length > 0)
             {
