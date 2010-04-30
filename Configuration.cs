@@ -75,7 +75,7 @@ namespace Jarilo
         public Configuration(string conf)
         {
             confPath = conf;
-            inifile = new IniConfigSource(confPath + "/jarilo.ini");
+            inifile = new IniConfigSource(confPath + "/jarilo.conf");
             inifile.CaseSensitive = false;
             LoadMastersAndBots();
             LoadRegions();
