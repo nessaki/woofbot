@@ -480,7 +480,10 @@ namespace Jarilo
             ThreadPool.QueueUserWorkItem(sync =>
             {
                 InitializeClient();
-                bool success = Client.Network.Login(Conf.FirstName, Conf.LastName, Conf.Password, "Jarilo", "last", Program.Version);
+                LoginParams param = Client.Network.DefaultLoginParams(Conf.FirstName, Conf.LastName, Conf.Password, "Jarilo", Program.Version);
+                param.URI = Conf.LoginURI;
+                param.Start = "last";
+                bool success = Client.Network.Login(param);
                 if (success)
                 {
                     UpdateSimHandle();
