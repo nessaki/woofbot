@@ -143,7 +143,7 @@ namespace Jarilo
                     string confID;
                     if (Conf.Conferences.TryGetValue(bridge.XmppConfereceID, out confID))
                     {
-                        Room room = Conferences.Find((Room r) => { return r.IsParticipating == true && r.JID.ToString() == confID; });
+                        Room room = Conferences.Find((Room r) => { return r.JID.ToString() == confID; });
                         if (room != null)
                         {
                             if (msg.StartsWith("/me "))
@@ -222,30 +222,43 @@ namespace Jarilo
 
             if (Environment.TickCount - joinTime < 5000) return;
 
-            List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) => { return b.XmppServerConf == Conf && b.XmppServerConf.Conferences.ContainsValue(conf.JID.ToString()); });
-            foreach (BridgeInfo bridge in bridges)
+            try
             {
-                if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+                List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
                 {
-                    GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
-                    if (bot != null)
-                    {
-                        bot.RelayMessage(bridge,
-                            string.Format("(xmpp:{0}) {1}", conf.JID.User, msg.From.Resource),
-                            msg.Body);
-                    }
-                }
+                    return
+                        b.XmppServerConf == Conf &&
+                        Conf.Conferences[b.XmppConfereceID] == conf.JID.ToString();
+                });
 
-                if (bridge.IrcServerConf != null)
+                foreach (BridgeInfo bridge in bridges)
                 {
-                    IrcBot bot = MainProgram.IrcBots.Find((IrcBot b) => { return b.Conf == bridge.IrcServerConf; });
-                    if (bot != null)
+                    if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
                     {
-                        bot.RelayMessage(bridge,
-                            string.Format("(xmpp:{0}) {1}", conf.JID.User, msg.From.Resource),
-                            msg.Body);
+                        GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
+                        if (bot != null)
+                        {
+                            bot.RelayMessage(bridge,
+                                string.Format("(xmpp:{0}) {1}", conf.JID.User, msg.From.Resource),
+                                msg.Body);
+                        }
+                    }
+
+                    if (bridge.IrcServerConf != null)
+                    {
+                        IrcBot bot = MainProgram.IrcBots.Find((IrcBot b) => { return b.Conf == bridge.IrcServerConf; });
+                        if (bot != null)
+                        {
+                            bot.RelayMessage(bridge,
+                                string.Format("(xmpp:{0}) {1}", conf.JID.User, msg.From.Resource),
+                                msg.Body);
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Failed relaying message: {0}", ex.Message);
             }
         }
 
@@ -257,7 +270,6 @@ namespace Jarilo
 
         private void Client_OnWriteText(object sender, string txt)
         {
-            return;
             if (txt != " ")
                 Console.WriteLine("SENT: " + txt);
         }

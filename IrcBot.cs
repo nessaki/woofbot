@@ -130,12 +130,12 @@ namespace Jarilo
                         {
                             bool emote = msg.StartsWith("/me ");
                             List<string> lines;
-                            
+
                             if (emote)
                                 lines = SplitMessage(msg.Substring(3));
                             else
                                 lines = SplitMessage(msg);
-                            
+
                             foreach (string line in lines)
                             {
                                 if (emote)
@@ -154,66 +154,98 @@ namespace Jarilo
             PrintMsg("IRC - " + Conf.ID, string.Format("Connected"));
         }
 
-        public List<BridgeInfo> GetBridges(string chan)
-        {
-            return MainConf.Bridges.FindAll((BridgeInfo b) => { return b.IrcServerConf == Conf && b.IrcServerConf.Channels.ContainsValue(chan); });
-        }
-
         void irc_OnChannelMessage(object sender, IrcEventArgs e)
         {
-            foreach (BridgeInfo bridge in GetBridges(e.Data.Channel))
-            {
-                if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+            ThreadPool.QueueUserWorkItem(sync =>
                 {
-                    GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
-                    if (bot != null)
+                    try
                     {
-                        bot.RelayMessage(bridge,
-                            string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                            e.Data.Message);
-                    }
-                }
+                        List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
+                        {
+                            return
+                                b.IrcServerConf == Conf &&
+                                Conf.Channels[b.IrcChanID] == e.Data.Channel;
+                        });
 
-                if (bridge.XmppServerConf != null)
-                {
-                    XmppBot bot = MainProgram.XmppBots.Find((XmppBot b) => { return b.Conf == bridge.XmppServerConf; });
-                    if (bot != null)
-                    {
-                        bot.RelayMessage(bridge,
-                            string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                            e.Data.Message);
+                        foreach (BridgeInfo bridge in bridges)
+                        {
+                            if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+                            {
+                                GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
+                                if (bot != null)
+                                {
+                                    bot.RelayMessage(bridge,
+                                        string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
+                                        e.Data.Message);
+                                }
+                            }
+
+                            if (bridge.XmppServerConf != null)
+                            {
+                                XmppBot bot = MainProgram.XmppBots.Find((XmppBot b) => { return b.Conf == bridge.XmppServerConf; });
+                                if (bot != null)
+                                {
+                                    bot.RelayMessage(bridge,
+                                        string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
+                                        e.Data.Message);
+                                }
+                            }
+                        }
                     }
-                }
-            }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed relaying message: {0}", ex.Message);
+                    }
+                });
+
         }
 
         void irc_OnChannelAction(object sender, ActionEventArgs e)
         {
-            foreach (BridgeInfo bridge in GetBridges(e.Data.Channel))
+            ThreadPool.QueueUserWorkItem(sync =>
             {
-                if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+                try
                 {
-                    GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
-                    if (bot != null)
+
+                    List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
                     {
-                        bot.RelayMessage(bridge, 
-                            string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                            string.Format("/me {0}", e.ActionMessage));
+                        return
+                            b.IrcServerConf == Conf &&
+                            Conf.Channels[b.IrcChanID] == e.Data.Channel;
+                    });
+
+                    foreach (BridgeInfo bridge in bridges)
+                    {
+                        if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+                        {
+                            GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
+                            if (bot != null)
+                            {
+                                bot.RelayMessage(bridge,
+                                    string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
+                                    string.Format("/me {0}", e.ActionMessage));
+                            }
+                        }
+
+                        if (bridge.XmppServerConf != null)
+                        {
+                            XmppBot bot = MainProgram.XmppBots.Find((XmppBot b) => { return b.Conf == bridge.XmppServerConf; });
+                            if (bot != null)
+                            {
+                                bot.RelayMessage(bridge,
+                                    string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
+                                    string.Format("/me {0}", e.ActionMessage));
+                            }
+                        }
+
                     }
                 }
-
-                if (bridge.XmppServerConf != null)
+                catch (Exception ex)
                 {
-                    XmppBot bot = MainProgram.XmppBots.Find((XmppBot b) => { return b.Conf == bridge.XmppServerConf; });
-                    if (bot != null)
-                    {
-                        bot.RelayMessage(bridge,
-                            string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                            string.Format("/me {0}", e.ActionMessage));
-                    }
+                    Console.WriteLine("Failed relaying message: {0}", ex.Message);
                 }
+            });
 
-            }
         }
 
         void irc_OnJoin(object sender, JoinEventArgs e)
@@ -262,7 +294,7 @@ namespace Jarilo
                 irc.Connect(server, port);
                 PrintMsg("System", "Logging in...");
                 irc.Login(nick, "Radegast SL Relay", 0, nick);
-                for (int i=0; i<chan.Length; i++)
+                for (int i = 0; i < chan.Length; i++)
                     irc.RfcJoin(chan[i]);
             }
             catch (Exception ex)

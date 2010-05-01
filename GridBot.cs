@@ -267,25 +267,40 @@ namespace Jarilo
             }
         }
 
+        int lastAskedToJoinSession = 0;
+
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
             StatusMsg(e.IM.Dialog + "(" + e.IM.FromAgentName + "): " + e.IM.Message);
 
-            foreach (var bridge in MainConf.Bridges.FindAll((BridgeInfo b) => { return b.Bot == Conf; }))
+            List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) => 
+            {
+                return 
+                    b.Bot == Conf &&
+                    b.GridGroup == e.IM.IMSessionID;
+            });
+
+            foreach (var bridge in bridges)
             {
                 IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServerConf; });
                 if (ircbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
                 {
                     ircbot.RelayMessage(bridge, e.IM.FromAgentName, e.IM.Message);
-                    if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID))
+                    if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID) && (Environment.TickCount - lastAskedToJoinSession) > 50000)
+                    {
+                        lastAskedToJoinSession = Environment.TickCount;
                         Client.Self.RequestJoinGroupChat(e.IM.IMSessionID);
+                    }
                 }
                 XmppBot xmppbot = MainProgram.XmppBots.Find((XmppBot ib) => { return ib.Conf == bridge.XmppServerConf; });
                 if (xmppbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
                 {
                     xmppbot.RelayMessage(bridge, e.IM.FromAgentName, e.IM.Message);
-                    if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID))
+                    if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID) && (Environment.TickCount - lastAskedToJoinSession) > 50000)
+                    {
+                        lastAskedToJoinSession = Environment.TickCount;
                         Client.Self.RequestJoinGroupChat(e.IM.IMSessionID);
+                    }
                 }
             }
 
