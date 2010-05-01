@@ -78,11 +78,12 @@ namespace Jarilo
 
         public void CmdStartup()
         {
+            return;
             foreach (XmppBot bot in XmppBots)
             {
                 bot.Connect();
             }
-            return;
+
             foreach (IrcBot bot in IrcBots)
             {
                 if (!bot.irc.IsConnected)

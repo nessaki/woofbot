@@ -88,6 +88,7 @@ namespace Jarilo
         public string Domain { get; set; }
         public string Password { get; set; }
         public string NetworkHost { get; set; }
+        public string Nick { get; set; }
         public Dictionary<string, string> Conferences { get; set; }
 
         public XmppServerInfo()
@@ -101,8 +102,10 @@ namespace Jarilo
         public string ID { get; set; }
         public BotInfo Bot { get; set; }
         public UUID GridGroup { get; set; }
-        public IrcServerInfo IrcServer { get; set; }
-        public string IrcChan { get; set; }
+        public IrcServerInfo IrcServerConf { get; set; }
+        public string IrcChanID { get; set; }
+        public XmppServerInfo XmppServerConf { get; set; }
+        public string XmppConfereceID { get; set; }
     }
 
     public class Configuration
@@ -234,6 +237,7 @@ namespace Jarilo
                         si.Domain = conf.GetString("xmpp_domain");
                         si.NetworkHost = conf.GetString("xmpp_server");
                         si.Password = conf.GetString("xmpp_password");
+                        si.Nick = conf.GetString("xmpp_nick", si.User);
                         XmppServers.Add(si);
                     }
                     catch (Exception ex)
@@ -265,12 +269,14 @@ namespace Jarilo
                     {
                         BridgeInfo bi = new BridgeInfo();
                         bi.ID = id;
-                        bi.IrcChan = conf.GetString("ircchan");
-                        bi.IrcServer = IrcServers.Find((IrcServerInfo s) => { return s.Channels.ContainsKey(bi.IrcChan); });
+                        bi.IrcChanID = conf.GetString("ircchan");
+                        bi.IrcServerConf = IrcServers.Find((IrcServerInfo s) => { return s.Channels.ContainsKey(bi.IrcChanID); });
                         UUID groupID;
                         UUID.TryParse(conf.GetString("grid_group"), out groupID);
                         bi.GridGroup = groupID;
                         bi.Bot = Bots.Find((BotInfo b) => { return b.ID == conf.GetString("bot"); });
+                        bi.XmppConfereceID = conf.GetString("xmppconference");
+                        bi.XmppServerConf = XmppServers.Find((XmppServerInfo xmpp) => { return xmpp.Conferences.ContainsKey(bi.XmppConfereceID); });
                         Bridges.Add(bi);
                     }
                     catch (Exception ex)

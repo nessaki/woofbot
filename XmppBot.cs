@@ -36,6 +36,7 @@ using System.Threading;
 using jabber;
 using jabber.client;
 using jabber.connection;
+using OpenMetaverse;
 
 namespace Jarilo
 {
@@ -59,6 +60,11 @@ namespace Jarilo
 
         public void Dispose()
         {
+            foreach (Room conf in Conferences)
+            {
+                if (conf.IsParticipating)
+                    conf.Leave("client quit");
+            }
             Conferences.Clear();
 
             if (ConfManager != null)
@@ -104,8 +110,10 @@ namespace Jarilo
             Client = new JabberClient();
             Client.OnInvalidCertificate += new System.Net.Security.RemoteCertificateValidationCallback(Client_OnInvalidCertificate);
             Client.OnConnect += new jabber.connection.StanzaStreamHandler(Client_OnConnect);
+#if DEBUG_XMPP
             Client.OnReadText += new bedrock.TextHandler(Client_OnReadText);
             Client.OnWriteText += new bedrock.TextHandler(Client_OnWriteText);
+#endif
             Client.OnError += new bedrock.ExceptionHandler(Client_OnError);
             Client.OnStreamError += new jabber.protocol.ProtocolHandler(Client_OnStreamError);
             Client.OnAuthenticate += new bedrock.ObjectHandler(Client_OnAuthenticate);
@@ -126,6 +134,43 @@ namespace Jarilo
             Client.Connect();
         }
 
+        public void RelayMessage(BridgeInfo bridge, string from, string msg)
+        {
+            try
+            {
+                if (Client != null)
+                {
+                    string confID;
+                    if (Conf.Conferences.TryGetValue(bridge.XmppConfereceID, out confID))
+                    {
+                        Room room = Conferences.Find((Room r) => { return r.IsParticipating == true && r.JID.ToString() == confID; });
+                        if (room != null)
+                        {
+                            if (msg.StartsWith("/me "))
+                                room.PublicMessage(string.Format("{0}{1}", from, msg.Substring(3)));
+                            else
+                                room.PublicMessage(string.Format("{0}: {1}", from, msg));
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            Room room = ConfManager.GetRoom(bridge.XmppServerConf.Conferences[bridge.XmppConfereceID] + "/" + Conf.Nick);
+                            room.OnJoin += new RoomEvent(room_OnJoin);
+                            room.OnLeave += new RoomPresenceHandler(room_OnLeave);
+                            room.Join();
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("XMPP - Failed to send message: " + ex.Message);
+            }
+        }
+
         void Client_OnAuthError(object sender, System.Xml.XmlElement rp)
         {
             Console.WriteLine("Error logging into XMPP server: {0}", rp.ToString());
@@ -140,7 +185,7 @@ namespace Jarilo
                     {
                         try
                         {
-                            Room room = ConfManager.GetRoom(addr + "/" + Conf.User);
+                            Room room = ConfManager.GetRoom(addr + "/" + Conf.Nick);
                             room.OnJoin += new RoomEvent(room_OnJoin);
                             room.OnLeave += new RoomPresenceHandler(room_OnLeave);
                             room.Join();
@@ -160,17 +205,48 @@ namespace Jarilo
                 Conferences.Remove(room);
         }
 
+        int joinTime = 0;
+
         void room_OnJoin(Room room)
         {
             Console.WriteLine("Joined group chat " + room.RoomAndNick.ToString());
             room.OnRoomMessage += new MessageHandler(room_OnRoomMessage);
-
+            joinTime = Environment.TickCount;
             Conferences.Add(room);
         }
 
         void room_OnRoomMessage(object sender, jabber.protocol.client.Message msg)
         {
-            System.Console.WriteLine("{0}: {1}", msg.From.Resource, msg.Body);
+            Room conf = (Room)sender;
+            System.Console.WriteLine("(xmpp:{0}) {1}: {2}", conf.JID.User, msg.From.Resource, msg.Body);
+
+            if (Environment.TickCount - joinTime < 5000) return;
+
+            List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) => { return b.XmppServerConf == Conf && b.XmppServerConf.Conferences.ContainsValue(conf.JID.ToString()); });
+            foreach (BridgeInfo bridge in bridges)
+            {
+                if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+                {
+                    GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
+                    if (bot != null)
+                    {
+                        bot.RelayMessage(bridge,
+                            string.Format("(xmpp:{0}) {1}", conf.JID.User, msg.From.Resource),
+                            msg.Body);
+                    }
+                }
+
+                if (bridge.IrcServerConf != null)
+                {
+                    IrcBot bot = MainProgram.IrcBots.Find((IrcBot b) => { return b.Conf == bridge.IrcServerConf; });
+                    if (bot != null)
+                    {
+                        bot.RelayMessage(bridge,
+                            string.Format("(xmpp:{0}) {1}", conf.JID.User, msg.From.Resource),
+                            msg.Body);
+                    }
+                }
+            }
         }
 
         private void Client_OnReadText(object sender, string txt)
@@ -206,10 +282,5 @@ namespace Jarilo
         {
             return true;
         }
-
-        public void RelayMessage(BridgeInfo bridge, string from, string message)
-        {
-        }
-
     }
 }

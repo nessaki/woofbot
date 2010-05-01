@@ -154,7 +154,6 @@ namespace Jarilo
             {
                 if (Conf.SitOn != UUID.Zero && Client.Self.SittingOn == 0)
                 {
-                    StatusMsg("Sitting on requested prim: " + Conf.SitOn);
                     Client.Self.RequestSit(Conf.SitOn, Vector3.Zero);
                     Client.Self.Sit();
                 }
@@ -274,10 +273,17 @@ namespace Jarilo
 
             foreach (var bridge in MainConf.Bridges.FindAll((BridgeInfo b) => { return b.Bot == Conf; }))
             {
-                IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServer; });
+                IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServerConf; });
                 if (ircbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
                 {
                     ircbot.RelayMessage(bridge, e.IM.FromAgentName, e.IM.Message);
+                    if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID))
+                        Client.Self.RequestJoinGroupChat(e.IM.IMSessionID);
+                }
+                XmppBot xmppbot = MainProgram.XmppBots.Find((XmppBot ib) => { return ib.Conf == bridge.XmppServerConf; });
+                if (xmppbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
+                {
+                    xmppbot.RelayMessage(bridge, e.IM.FromAgentName, e.IM.Message);
                     if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID))
                         Client.Self.RequestJoinGroupChat(e.IM.IMSessionID);
                 }
@@ -312,11 +318,12 @@ namespace Jarilo
 
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
         {
-            if (!Client.Network.Connected) return; 
+            if (!Client.Network.Connected) return;
 
             ThreadPool.QueueUserWorkItem(sync =>
                 {
                     UUID groupID = bridge.GridGroup;
+                    bool success = true;
                     if (!Client.Self.GroupChatSessions.ContainsKey(groupID))
                     {
                         ManualResetEvent joined = new ManualResetEvent(false);
@@ -331,13 +338,19 @@ namespace Jarilo
 
                         Client.Self.GroupChatJoined += handler;
                         Client.Self.RequestJoinGroupChat(groupID);
-                        joined.WaitOne(30 * 1000);
+                        success = joined.WaitOne(30 * 1000);
                         Client.Self.GroupChatJoined -= handler;
-                        Client.Self.InstantMessageGroup(groupID, string.Format("{0}: {1}", from, msg));
+                    }
+                    if (success)
+                    {
+                        if (msg.StartsWith("/me "))
+                            Client.Self.InstantMessageGroup(groupID, string.Format("{0}{1}", from, msg.Substring(3)));
+                        else
+                            Client.Self.InstantMessageGroup(groupID, string.Format("{0}: {1}", from, msg));
                     }
                     else
                     {
-                        Client.Self.InstantMessageGroup(groupID, string.Format("{0}: {1}", from, msg));
+                        Logger.Log("Failed to start group chat session", Helpers.LogLevel.Warning);
                     }
                 }
             );

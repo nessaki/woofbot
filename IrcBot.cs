@@ -32,6 +32,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Meebey.SmartIrc4net;
 using OpenMetaverse;
@@ -73,34 +74,79 @@ namespace Jarilo
 
         public void Dispose()
         {
-            if (irc != null)
+            try
             {
-                if (irc.IsConnected)
-                    irc.Disconnect();
-                irc = null;
+                if (irc != null)
+                {
+                    if (irc.IsConnected)
+                        irc.Disconnect();
+                    irc = null;
+                }
+
+                if (IRCConnection != null)
+                {
+                    if (IRCConnection.IsAlive)
+                        IRCConnection.Abort();
+                    IRCConnection = null;
+                }
+            }
+            catch { }
+        }
+
+        List<string> SplitMessage(string message)
+        {
+            List<string> ret = new List<string>();
+            string[] lines = Regex.Split(message, "\n+");
+
+            for (int l = 0; l < lines.Length; l++)
+            {
+
+                string[] words = lines[l].Split(' ');
+                string outstr = string.Empty;
+
+                for (int i = 0; i < words.Length; i++)
+                {
+                    outstr += words[i] + " ";
+                    if (outstr.Length > 380)
+                    {
+                        ret.Add(outstr.Trim());
+                        outstr = string.Empty;
+                    }
+                }
+                ret.Add(outstr.Trim());
             }
 
-            if (IRCConnection != null)
-            {
-                if (IRCConnection.IsAlive)
-                    IRCConnection.Abort();
-                IRCConnection = null;
-            }
+            return ret;
         }
 
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
         {
-            if (irc != null && irc.IsConnected)
-            {
-                string chan;
-                if (Conf.Channels.TryGetValue(bridge.IrcChan, out chan))
+            ThreadPool.QueueUserWorkItem(sync =>
                 {
-                    if (msg.StartsWith("/me "))
-                        irc.SendMessage(SendType.Action, chan, string.Format("{0}{1}", from, msg.Substring(3)));
-                    else
-                        irc.SendMessage(SendType.Message, chan, string.Format("{0}: {1}", from, msg));
-                }
-            }
+                    if (irc != null && irc.IsConnected)
+                    {
+                        string chan;
+                        if (Conf.Channels.TryGetValue(bridge.IrcChanID, out chan))
+                        {
+                            bool emote = msg.StartsWith("/me ");
+                            List<string> lines;
+                            
+                            if (emote)
+                                lines = SplitMessage(msg.Substring(3));
+                            else
+                                lines = SplitMessage(msg);
+                            
+                            foreach (string line in lines)
+                            {
+                                if (emote)
+                                    irc.SendMessage(SendType.Action, chan, string.Format("{0} {1}", from, line));
+                                else
+                                    irc.SendMessage(SendType.Message, chan, string.Format("{0}: {1}", from, line));
+                            }
+
+                        }
+                    }
+                });
         }
 
         void irc_OnConnected(object sender, EventArgs e)
@@ -110,7 +156,7 @@ namespace Jarilo
 
         public List<BridgeInfo> GetBridges(string chan)
         {
-            return MainConf.Bridges.FindAll((BridgeInfo b) => { return b.IrcServer == Conf && b.IrcServer.Channels.ContainsValue(chan); });
+            return MainConf.Bridges.FindAll((BridgeInfo b) => { return b.IrcServerConf == Conf && b.IrcServerConf.Channels.ContainsValue(chan); });
         }
 
         void irc_OnChannelMessage(object sender, IrcEventArgs e)
@@ -120,6 +166,17 @@ namespace Jarilo
                 if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
                 {
                     GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
+                    if (bot != null)
+                    {
+                        bot.RelayMessage(bridge,
+                            string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
+                            e.Data.Message);
+                    }
+                }
+
+                if (bridge.XmppServerConf != null)
+                {
+                    XmppBot bot = MainProgram.XmppBots.Find((XmppBot b) => { return b.Conf == bridge.XmppServerConf; });
                     if (bot != null)
                     {
                         bot.RelayMessage(bridge,
@@ -141,9 +198,21 @@ namespace Jarilo
                     {
                         bot.RelayMessage(bridge, 
                             string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                            string.Format("*** {0}", e.ActionMessage));
+                            string.Format("/me {0}", e.ActionMessage));
                     }
                 }
+
+                if (bridge.XmppServerConf != null)
+                {
+                    XmppBot bot = MainProgram.XmppBots.Find((XmppBot b) => { return b.Conf == bridge.XmppServerConf; });
+                    if (bot != null)
+                    {
+                        bot.RelayMessage(bridge,
+                            string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
+                            string.Format("/me {0}", e.ActionMessage));
+                    }
+                }
+
             }
         }
 
