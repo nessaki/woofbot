@@ -78,7 +78,6 @@ namespace Jarilo
 
         public void CmdStartup()
         {
-            return;
             foreach (XmppBot bot in XmppBots)
             {
                 bot.Connect();
