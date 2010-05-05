@@ -346,15 +346,20 @@ namespace Jarilo
                             {
                                 if (e.SessionID == groupID)
                                 {
+                                    lastAskedToJoinSession = 0;
                                     joined.Set();
                                     Logger.Log(string.Format("{0} group chat {1}", e.Success ? "Successfully joined" : "Failed to join", groupID), Helpers.LogLevel.Info);
                                 }
                             };
-
-                        Client.Self.GroupChatJoined += handler;
-                        Client.Self.RequestJoinGroupChat(groupID);
-                        success = joined.WaitOne(30 * 1000);
-                        Client.Self.GroupChatJoined -= handler;
+                        success = false;
+                        if (Environment.TickCount - lastAskedToJoinSession > 50000)
+                        {
+                            lastAskedToJoinSession = Environment.TickCount;
+                            Client.Self.GroupChatJoined += handler;
+                            Client.Self.RequestJoinGroupChat(groupID);
+                            success = joined.WaitOne(30 * 1000);
+                            Client.Self.GroupChatJoined -= handler;
+                        }
                     }
                     if (success)
                     {
