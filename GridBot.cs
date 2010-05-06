@@ -256,54 +256,51 @@ namespace Jarilo
             {
                 StatusMsg("Logged in");
             }
+            else if (e.Status == LoginStatus.Failed)
+            {
+                StatusMsg(string.Format("Failed to login ({0}): {1}", e.FailReason, e.Message));
+            }
         }
 
         void Network_Disconnected(object sender, DisconnectedEventArgs e)
         {
             StatusMsg("Disconnected");
-            if (Persitant && !LoggingIn)
+            ThreadPool.QueueUserWorkItem(sync =>
             {
-                Login();
-            }
+                Thread.Sleep(30 * 1000);
+                if (Persitant && !LoggingIn)
+                {
+                    Login();
+                }
+            });
         }
-
-        int lastAskedToJoinSession = 0;
 
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
             StatusMsg(e.IM.Dialog + "(" + e.IM.FromAgentName + "): " + e.IM.Message);
 
-            List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) => 
+            List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
             {
-                return 
+                return
                     b.Bot == Conf &&
                     b.GridGroup == e.IM.IMSessionID;
             });
 
             foreach (var bridge in bridges)
             {
+                string from = string.Format("(grid:{0}) {1}", Conf.GridName, e.IM.FromAgentName);
+
                 IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServerConf; });
                 if (ircbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
                 {
-                    ircbot.RelayMessage(bridge, e.IM.FromAgentName, e.IM.Message);
-                    if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID) && (Environment.TickCount - lastAskedToJoinSession) > 50000)
-                    {
-                        lastAskedToJoinSession = Environment.TickCount;
-                        Client.Self.RequestJoinGroupChat(e.IM.IMSessionID);
-                    }
+                    ircbot.RelayMessage(bridge, from, e.IM.Message);
                 }
                 XmppBot xmppbot = MainProgram.XmppBots.Find((XmppBot ib) => { return ib.Conf == bridge.XmppServerConf; });
                 if (xmppbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
                 {
-                    xmppbot.RelayMessage(bridge, e.IM.FromAgentName, e.IM.Message);
-                    if (!Client.Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID) && (Environment.TickCount - lastAskedToJoinSession) > 50000)
-                    {
-                        lastAskedToJoinSession = Environment.TickCount;
-                        Client.Self.RequestJoinGroupChat(e.IM.IMSessionID);
-                    }
+                    xmppbot.RelayMessage(bridge, from, e.IM.Message);
                 }
             }
-
 
             if (!MainConf.IsMaster(e.IM.FromAgentName))
             {
@@ -331,6 +328,8 @@ namespace Jarilo
             });
         }
 
+        object SyncJoinSession = new object();
+
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
         {
             if (!Client.Network.Connected) return;
@@ -339,22 +338,20 @@ namespace Jarilo
                 {
                     UUID groupID = bridge.GridGroup;
                     bool success = true;
-                    if (!Client.Self.GroupChatSessions.ContainsKey(groupID))
+                    lock (SyncJoinSession)
                     {
-                        ManualResetEvent joined = new ManualResetEvent(false);
-                        EventHandler<GroupChatJoinedEventArgs> handler = (object sender, GroupChatJoinedEventArgs e) =>
-                            {
-                                if (e.SessionID == groupID)
-                                {
-                                    lastAskedToJoinSession = 0;
-                                    joined.Set();
-                                    Logger.Log(string.Format("{0} group chat {1}", e.Success ? "Successfully joined" : "Failed to join", groupID), Helpers.LogLevel.Info);
-                                }
-                            };
-                        success = false;
-                        if (Environment.TickCount - lastAskedToJoinSession > 50000)
+                        if (!Client.Self.GroupChatSessions.ContainsKey(groupID))
                         {
-                            lastAskedToJoinSession = Environment.TickCount;
+                            ManualResetEvent joined = new ManualResetEvent(false);
+                            EventHandler<GroupChatJoinedEventArgs> handler = (object sender, GroupChatJoinedEventArgs e) =>
+                                {
+                                    if (e.SessionID == groupID)
+                                    {
+                                        joined.Set();
+                                        Logger.Log(string.Format("{0} group chat {1}", e.Success ? "Successfully joined" : "Failed to join", groupID), Helpers.LogLevel.Info);
+                                    }
+                                };
+                            success = false;
                             Client.Self.GroupChatJoined += handler;
                             Client.Self.RequestJoinGroupChat(groupID);
                             success = joined.WaitOne(30 * 1000);

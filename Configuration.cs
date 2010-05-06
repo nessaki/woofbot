@@ -53,7 +53,7 @@ namespace Jarilo
         public string Sim { get; set; }
         public Vector3 PosInSim { get; set; }
         public string LoginURI { get; set; }
-
+        public string GridName { get; set; }
         public string Name
         {
             get { return FirstName + " " + LastName; }
@@ -62,6 +62,7 @@ namespace Jarilo
         public BotInfo()
         {
             LoginURI = "https://login.agni.lindenlab.com/cgi-bin/login.cgi";
+            GridName = "agni";
         }
     }
 
@@ -185,6 +186,14 @@ namespace Jarilo
                         if (conf.Contains("login_uri"))
                         {
                             b.LoginURI = conf.Get("login_uri");
+                        }
+                        if (conf.Contains("grid_name"))
+                        {
+                            b.GridName = conf.GetString("grid_name");
+                        }
+                        else
+                        {
+                            b.GridName = "agni";
                         }
                         Bots.Add(b);
                     }

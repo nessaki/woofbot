@@ -51,9 +51,9 @@
     <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL" />
     <Reference Include="Meebey.SmartIrc4net, Version=0.4.0.29113, Culture=neutral, processorArchitecture=x86" />
     <Reference Include="Nini, Version=1.1.0.0, Culture=neutral, PublicKeyToken=691faec150a7fa7b, processorArchitecture=MSIL" />
-    <Reference Include="OpenMetaverse, Version=0.8.0.25603, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="OpenMetaverse.StructuredData, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="OpenMetaverseTypes, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="OpenMetaverse, Version=0.0.0.26741, Culture=neutral, processorArchitecture=x86" />
+    <Reference Include="OpenMetaverse.StructuredData, Version=0.0.0.0, Culture=neutral, processorArchitecture=x86" />
+    <Reference Include="OpenMetaverseTypes, Version=0.0.0.0, Culture=neutral, processorArchitecture=x86" />
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -79,12 +79,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="assemblies\Nini.dll">
-    </None>
-    <None Include="assemblies\OpenMetaverse.dll">
-    </None>
-    <None Include="assemblies\OpenMetaverse.StructuredData.dll">
-    </None>
-    <None Include="assemblies\OpenMetaverseTypes.dll">
     </None>
     <Content Include="openjpeg-dotnet-x86_64.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -280,6 +274,9 @@
     </None>
     <None Include="assemblies\zlib.net.dll" />
     <Content Include="assemblies\jabber-net.dll" />
+    <Content Include="assemblies\OpenMetaverse.dll" />
+    <Content Include="assemblies\OpenMetaverse.StructuredData.dll" />
+    <Content Include="assemblies\OpenMetaverseTypes.dll" />
     <Content Include="libopenjpeg-dotnet-2.1.3.0-dotnet-1-i686.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
