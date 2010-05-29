@@ -49,17 +49,47 @@ namespace Jarilo
         public StanzaStream Stream;
         public ConferenceManager ConfManager;
         public List<Room> Conferences = new List<Room>();
+        Timer roomChecker;
 
         public XmppBot(Program p, XmppServerInfo c, Configuration m)
         {
             MainProgram = p;
             Conf = c;
             MainConf = m;
+            roomChecker = new Timer(RoomChecker, null, 120 * 1000, 120 * 1000);
+        }
 
+        private void RoomChecker(object state)
+        {
+            lock (Conferences)
+            {
+                foreach (Room conf in Conferences)
+                {
+                    Logger.Log("Checking health of " + conf.JID.ToString(), Helpers.LogLevel.Info);
+                    if (!conf.IsParticipating)
+                    {
+                        Logger.Log(conf.JID.ToString() + " is not in running state", Helpers.LogLevel.Warning);
+                        try
+                        {
+                            conf.Join();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Failed to join room in hearbeat timer: " + ex.Message, Helpers.LogLevel.Error);
+                        }
+                    }
+                }
+            }
         }
 
         public void Dispose()
         {
+            if (roomChecker != null)
+            {
+                roomChecker.Dispose();
+                roomChecker = null;
+            }
+
             foreach (Room conf in Conferences)
             {
                 if (conf.IsParticipating)
@@ -141,22 +171,27 @@ namespace Jarilo
                 if (Client != null)
                 {
                     string confID;
+                    Room room = null;
                     if (Conf.Conferences.TryGetValue(bridge.XmppConfereceID, out confID))
                     {
-                        Room room = Conferences.Find((Room r) => { return r.JID.ToString() == confID; });
-                        if (room != null)
-                        {
-                            if (msg.StartsWith("/me "))
-                                room.PublicMessage(string.Format("{0}{1}", from, msg.Substring(3)));
-                            else
-                                room.PublicMessage(string.Format("{0}: {1}", from, msg));
-                        }
+                        room = Conferences.Find((Room r) => { return r.JID.ToString() == confID; });
+                    }
+                    if (room != null && room.IsParticipating)
+                    {
+                        if (msg.StartsWith("/me "))
+                            room.PublicMessage(string.Format("{0}{1}", from, msg.Substring(3)));
+                        else
+                            room.PublicMessage(string.Format("{0}: {1}", from, msg));
+                    }
+                    else if (room != null)
+                    {
+                        room.Join();
                     }
                     else
                     {
                         try
                         {
-                            Room room = ConfManager.GetRoom(bridge.XmppServerConf.Conferences[bridge.XmppConfereceID] + "/" + Conf.Nick);
+                            room = ConfManager.GetRoom(bridge.XmppServerConf.Conferences[bridge.XmppConfereceID] + "/" + Conf.Nick);
                             room.OnJoin += new RoomEvent(room_OnJoin);
                             room.OnLeave += new RoomPresenceHandler(room_OnLeave);
                             room.Join();
@@ -201,8 +236,11 @@ namespace Jarilo
 
         void room_OnLeave(Room room, jabber.protocol.client.Presence pres)
         {
-            if (Conferences.Contains(room))
-                Conferences.Remove(room);
+            lock (Conferences)
+            {
+                if (Conferences.Contains(room))
+                    Conferences.Remove(room);
+            }
         }
 
         int joinTime = 0;
@@ -212,7 +250,7 @@ namespace Jarilo
             Console.WriteLine("Joined group chat " + room.RoomAndNick.ToString());
             room.OnRoomMessage += new MessageHandler(room_OnRoomMessage);
             joinTime = Environment.TickCount;
-            Conferences.Add(room);
+            lock (Conferences) Conferences.Add(room);
         }
 
         void room_OnRoomMessage(object sender, jabber.protocol.client.Message msg)
