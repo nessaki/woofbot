@@ -174,9 +174,23 @@ namespace Jarilo
                                 GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
                                 if (bot != null)
                                 {
+                                    string from = string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick);
+                                    string msg = e.Data.Message;
+
+                                    Match m = Regex.Match(msg, @"\(grid:(?<grid>[^)]*)\)\s*(?<first>\w+)\s*(?<last>\w+)[ :]*(?<msg>.*)");
+                                    if (m.Success)
+                                    {
+                                        from = string.Format("(grid:{0}) {1} {2}",
+                                            m.Groups["grid"],
+                                            m.Groups["first"],
+                                            m.Groups["last"]
+                                            );
+                                        msg = m.Groups["msg"].ToString();
+                                    }
+
                                     bot.RelayMessage(bridge,
-                                        string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                                        e.Data.Message);
+                                        from,
+                                        msg);
                                 }
                             }
 
@@ -221,9 +235,23 @@ namespace Jarilo
                             GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
                             if (bot != null)
                             {
+                                string from = string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick);
+                                string msg = string.Format("/me {0}", e.ActionMessage);
+
+                                Match m = Regex.Match(e.ActionMessage, @"\(grid:(?<grid>[^)]*)\)\s*(?<first>\w+)\s*(?<last>\w+)[ :]*(?<msg>.*)");
+                                if (m.Success)
+                                {
+                                    from = string.Format("(grid:{0}) {1} {2}",
+                                        m.Groups["grid"],
+                                        m.Groups["first"],
+                                        m.Groups["last"]
+                                        );
+                                    msg = "/me " + m.Groups["msg"].ToString();
+                                }
+
                                 bot.RelayMessage(bridge,
-                                    string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                                    string.Format("/me {0}", e.ActionMessage));
+                                    from,
+                                    msg);
                             }
                         }
 
