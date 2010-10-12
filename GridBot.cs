@@ -278,6 +278,7 @@ namespace Jarilo
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
             StatusMsg(e.IM.Dialog + "(" + e.IM.FromAgentName + "): " + e.IM.Message);
+            if (e.IM.FromAgentName == Client.Self.Name) return;
 
             List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
             {
