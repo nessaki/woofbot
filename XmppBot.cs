@@ -49,47 +49,16 @@ namespace Jarilo
         public StanzaStream Stream;
         public ConferenceManager ConfManager;
         public List<Room> Conferences = new List<Room>();
-        Timer roomChecker;
 
         public XmppBot(Program p, XmppServerInfo c, Configuration m)
         {
             MainProgram = p;
             Conf = c;
             MainConf = m;
-            roomChecker = new Timer(RoomChecker, null, 120 * 1000, 120 * 1000);
-        }
-
-        private void RoomChecker(object state)
-        {
-            lock (Conferences)
-            {
-                foreach (Room conf in Conferences)
-                {
-                    Logger.Log("Checking health of " + conf.JID.ToString(), Helpers.LogLevel.Info);
-                    if (!conf.IsParticipating)
-                    {
-                        Logger.Log(conf.JID.ToString() + " is not in running state", Helpers.LogLevel.Warning);
-                        try
-                        {
-                            conf.Join();
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Log("Failed to join room in hearbeat timer: " + ex.Message, Helpers.LogLevel.Error);
-                        }
-                    }
-                }
-            }
         }
 
         public void Dispose()
         {
-            if (roomChecker != null)
-            {
-                roomChecker.Dispose();
-                roomChecker = null;
-            }
-
             foreach (Room conf in Conferences)
             {
                 if (conf.IsParticipating)
@@ -138,6 +107,7 @@ namespace Jarilo
                 Client.Dispose();
 
             Client = new JabberClient();
+            Client.Resource = "JariloRelay";
             Client.OnInvalidCertificate += new System.Net.Security.RemoteCertificateValidationCallback(Client_OnInvalidCertificate);
             Client.OnConnect += new jabber.connection.StanzaStreamHandler(Client_OnConnect);
 #if DEBUG_XMPP
@@ -148,6 +118,7 @@ namespace Jarilo
             Client.OnStreamError += new jabber.protocol.ProtocolHandler(Client_OnStreamError);
             Client.OnAuthenticate += new bedrock.ObjectHandler(Client_OnAuthenticate);
             Client.OnAuthError += new jabber.protocol.ProtocolHandler(Client_OnAuthError);
+            Client.OnDisconnect += new bedrock.ObjectHandler(Client_OnDisconnect);
             ConfManager = new ConferenceManager();
             ConfManager.Stream = Client;
 
@@ -194,6 +165,7 @@ namespace Jarilo
                             room = ConfManager.GetRoom(bridge.XmppServerConf.Conferences[bridge.XmppConfereceID] + "/" + Conf.Nick);
                             room.OnJoin += new RoomEvent(room_OnJoin);
                             room.OnLeave += new RoomPresenceHandler(room_OnLeave);
+                            room.OnPresenceError += new RoomPresenceHandler(room_OnPresenceError);
                             room.Join();
                         }
                         catch { }
@@ -213,29 +185,49 @@ namespace Jarilo
 
         void Client_OnAuthenticate(object sender)
         {
-            ThreadPool.QueueUserWorkItem(sync =>
+            Console.WriteLine("XMPP logged in to " + Client.NetworkHost);
+            foreach (string addr in Conf.Conferences.Values)
+            {
+                try
                 {
-                    Console.WriteLine("XMPP logged in to " + Client.NetworkHost);
-                    foreach (string addr in Conf.Conferences.Values)
-                    {
-                        try
-                        {
-                            Room room = ConfManager.GetRoom(addr + "/" + Conf.Nick);
-                            room.OnJoin += new RoomEvent(room_OnJoin);
-                            room.OnLeave += new RoomPresenceHandler(room_OnLeave);
-                            room.Join();
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine("Error joining conference {0}: {1}", addr, ex.Message);
-                        }
-                    }
+                    Room room = ConfManager.GetRoom(addr + "/" + Conf.Nick);
+                    room.OnJoin += new RoomEvent(room_OnJoin);
+                    room.OnLeave += new RoomPresenceHandler(room_OnLeave);
+                    room.Join();
                 }
-            );
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error joining conference {0}: {1}", addr, ex.Message);
+                }
+            }
         }
 
         void room_OnLeave(Room room, jabber.protocol.client.Presence pres)
         {
+            Console.WriteLine("Left group chat " + room.RoomAndNick.ToString());
+            if (Client.IsAuthenticated)
+            {
+                var id = room.RoomAndNick;
+
+                ThreadPool.QueueUserWorkItem(sync =>
+                    {
+                        Thread.Sleep(10 * 1000);
+                        if (!Client.IsAuthenticated) return;
+                        try
+                        {
+                            Room nroom = ConfManager.GetRoom(id);
+                            nroom.OnJoin += new RoomEvent(room_OnJoin);
+                            nroom.OnLeave += new RoomPresenceHandler(room_OnLeave);
+                            nroom.Join();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Error joining conference {0}: {1}", id, ex.Message);
+                        }
+                    }
+                );
+            }
+
             lock (Conferences)
             {
                 if (Conferences.Contains(room))
@@ -251,6 +243,11 @@ namespace Jarilo
             room.OnRoomMessage += new MessageHandler(room_OnRoomMessage);
             joinTime = Environment.TickCount;
             lock (Conferences) Conferences.Add(room);
+        }
+
+        void room_OnPresenceError(Room room, jabber.protocol.client.Presence pres)
+        {
+            Logger.DebugLog("room_OnPresenceError: " + pres.ToString());
         }
 
         void room_OnRoomMessage(object sender, jabber.protocol.client.Message msg)
@@ -326,6 +323,11 @@ namespace Jarilo
         void Client_OnConnect(object sender, StanzaStream stream)
         {
             Console.WriteLine("XMPP server connected, logging in...");
+        }
+
+        void Client_OnDisconnect(object sender)
+        {
+            Console.WriteLine("XMPP server disconnected.");
         }
 
         bool Client_OnInvalidCertificate(object sender, System.Security.Cryptography.X509Certificates.X509Certificate certificate, System.Security.Cryptography.X509Certificates.X509Chain chain, System.Net.Security.SslPolicyErrors sslPolicyErrors)
