@@ -420,6 +420,21 @@ namespace Jarilo
                     Client.Groups.ActivateGroup(group);
                     ReplyIm(im, "Activated group with uuid: " + group.ToString());
                     break;
+                case "help":
+                    ReplyIm(im, "Commands:\n"
+                        + "\nhelp - display this message"
+                        + "\nlogout - logs me out"
+                        + "\nstartup - starts offline bots"
+                        + "\nshutdown - logs all bots off"
+                        + "\nstatus - gives you my status"
+                        /* Liru Note: These don't seem to work on SL anymore.
+                        + "\nappearance - rebake me"
+                        + "\nrebake - rebake me forcefully"
+                         */
+                        + "\ngroupinfo - get info on all my groups"
+                        + "\ngroupactivate <UUID> - sets my active group to UUID, if provided"
+                        );
+                    break;
             }
         }
 
