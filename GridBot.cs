@@ -164,7 +164,7 @@ namespace Jarilo
         {
             if (!Connected)
             {
-                StatusMsg(Conf.Name + " not loggend in, trying to log in.");
+                StatusMsg(Conf.Name + " not logged in, trying to log in.");
                 if (!LoggingIn)
                 {
                     Login();
