@@ -106,7 +106,7 @@ namespace Jarilo
         public IrcServerInfo IrcServerConf { get; set; }
         public string IrcChanID { get; set; }
         public XmppServerInfo XmppServerConf { get; set; }
-        public string XmppConfereceID { get; set; }
+        public string XmppConferenceID { get; set; }
     }
 
     public class Configuration
@@ -226,7 +226,7 @@ namespace Jarilo
                         IrcServerInfo si = IrcServers.Find((IrcServerInfo s) => { return s.ID == server_id; });
                         if (si == null)
                         {
-                            Console.WriteLine("Waringing, unkown server in section [{0}]", conf.Name);
+                            Console.WriteLine("Warning, unknown server in section [{0}]", conf.Name);
                             continue;
                         }
                         si.Channels[id] = conf.GetString("chan_name");
@@ -262,7 +262,7 @@ namespace Jarilo
                         XmppServerInfo si = XmppServers.Find((XmppServerInfo s) => { return s.ID == server_id; });
                         if (si == null)
                         {
-                            Console.WriteLine("Waringing, unkown server in section [{0}]", conf.Name);
+                            Console.WriteLine("Warning, unknown server in section [{0}]", conf.Name);
                             continue;
                         }
                         si.Conferences[id] = conf.GetString("conference");
@@ -284,8 +284,8 @@ namespace Jarilo
                         UUID.TryParse(conf.GetString("grid_group"), out groupID);
                         bi.GridGroup = groupID;
                         bi.Bot = Bots.Find((BotInfo b) => { return b.ID == conf.GetString("bot"); });
-                        bi.XmppConfereceID = conf.GetString("xmppconference");
-                        bi.XmppServerConf = XmppServers.Find((XmppServerInfo xmpp) => { return xmpp.Conferences.ContainsKey(bi.XmppConfereceID); });
+                        bi.XmppConferenceID = conf.GetString("xmppconference");
+                        bi.XmppServerConf = XmppServers.Find((XmppServerInfo xmpp) => { return xmpp.Conferences.ContainsKey(bi.XmppConferenceID); });
                         Bridges.Add(bi);
                     }
                     catch (Exception ex)

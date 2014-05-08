@@ -143,7 +143,7 @@ namespace Jarilo
                 {
                     string confID;
                     Room room = null;
-                    if (Conf.Conferences.TryGetValue(bridge.XmppConfereceID, out confID))
+                    if (Conf.Conferences.TryGetValue(bridge.XmppConferenceID, out confID))
                     {
                         room = Conferences.Find((Room r) => { return r.JID.ToString() == confID; });
                     }
@@ -162,7 +162,7 @@ namespace Jarilo
                     {
                         try
                         {
-                            room = ConfManager.GetRoom(bridge.XmppServerConf.Conferences[bridge.XmppConfereceID] + "/" + Conf.Nick);
+                            room = ConfManager.GetRoom(bridge.XmppServerConf.Conferences[bridge.XmppConferenceID] + "/" + Conf.Nick);
                             room.OnJoin += new RoomEvent(room_OnJoin);
                             room.OnLeave += new RoomPresenceHandler(room_OnLeave);
                             room.OnPresenceError += new RoomPresenceHandler(room_OnPresenceError);
@@ -263,7 +263,7 @@ namespace Jarilo
                 {
                     return
                         b.XmppServerConf == Conf &&
-                        Conf.Conferences[b.XmppConfereceID] == conf.JID.ToString();
+                        Conf.Conferences[b.XmppConferenceID] == conf.JID.ToString();
                 });
 
                 foreach (BridgeInfo bridge in bridges)
