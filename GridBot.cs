@@ -277,8 +277,9 @@ namespace Jarilo
 
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
-            StatusMsg(e.IM.Dialog + "(" + e.IM.FromAgentName + "): " + e.IM.Message);
             if (e.IM.FromAgentName == Client.Self.Name) return;
+            string name = e.IM.FromAgentName.EndsWith(" Resident") ? e.IM.FromAgentName.Substring(0, e.IM.FromAgentName.Length - 9) : e.IM.FromAgentName;
+            StatusMsg(e.IM.Dialog + "(" + name + "): " + e.IM.Message);
 
             List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
             {
@@ -289,7 +290,6 @@ namespace Jarilo
 
             foreach (var bridge in bridges)
             {
-                string name = e.IM.FromAgentName.EndsWith(" Resident") ? e.IM.FromAgentName.Substring(0, e.IM.FromAgentName.Length - 9) : e.IM.FromAgentName;
                 string from = string.Format("(grid:{0}) {1}", Conf.GridName, name);
 
                 IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServerConf; });

@@ -321,7 +321,7 @@ namespace Jarilo
             {
                 irc.Connect(server, port);
                 PrintMsg("System", "Logging in...");
-                irc.Login(nick, "Radegast SL Relay", 0, nick);
+                irc.Login(nick, "Singularity SL Relay", 0, nick);
                 for (int i = 0; i < chan.Length; i++)
                     irc.RfcJoin(chan[i]);
             }
