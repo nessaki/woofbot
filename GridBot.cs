@@ -289,7 +289,8 @@ namespace Jarilo
 
             foreach (var bridge in bridges)
             {
-                string from = string.Format("(grid:{0}) {1}", Conf.GridName, e.IM.FromAgentName);
+                string name = e.IM.FromAgentName.EndsWith(" Resident") ? e.IM.FromAgentName.Substring(0, e.IM.FromAgentName.Length - 9) : e.IM.FromAgentName;
+                string from = string.Format("(grid:{0}) {1}", Conf.GridName, name);
 
                 IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServerConf; });
                 if (ircbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
