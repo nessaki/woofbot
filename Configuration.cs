@@ -397,7 +397,7 @@ namespace Jarilo
                 sb.AppendLine();
             }
             sb.AppendFormat("Region handles ({0})\n", Regions.Count);
-            return sb.ToString();
+            return sb.ToString() + "\nSay `startup` to start, and `quit` to end.\n";
         }
 
         public bool IsMaster(UUID key)
