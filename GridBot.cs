@@ -306,6 +306,11 @@ namespace Jarilo
 
             if (!MainConf.IsMaster(e.IM.FromAgentName))
             {
+                if (e.IM.Dialog.Equals(InstantMessageDialog.MessageFromAgent) || e.IM.Dialog.Equals(InstantMessageDialog.InventoryOffered))
+                {
+                    ReplyIm(e.IM, "Sorry, I am a chat relay bot, you were probably meaning to talk to my masters in some group."
+                        + "\nIf you are sending me a texture, might I suggest uploading it to somewhere such as imgur and posting the link in chat? I'll gladly let my masters know then!");
+                }
                 return;
             }
 
