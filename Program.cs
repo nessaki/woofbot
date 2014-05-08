@@ -101,7 +101,7 @@ namespace Jarilo
                 {
                     System.Console.WriteLine("Logging in {0}...", bot.Conf.Name);
                     bot.Login();
-                    bot.Persitant = true;
+                    bot.Persistant = true;
                 }
                 else
                 {

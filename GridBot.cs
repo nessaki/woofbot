@@ -44,15 +44,15 @@ namespace Jarilo
 
         Configuration MainConf;
         Program MainProgram;
-        bool persit = false;
+        bool persist = false;
         System.Timers.Timer networkChecker;
         System.Timers.Timer positionChecker;
 
-        public bool Persitant
+        public bool Persistant
         {
             set
             {
-                persit = value;
+                persist = value;
                 if (value)
                 {
                     networkChecker.Enabled = true;
@@ -66,7 +66,7 @@ namespace Jarilo
             }
             get
             {
-                return persit;
+                return persist;
             }
         }
 
@@ -268,7 +268,7 @@ namespace Jarilo
             ThreadPool.QueueUserWorkItem(sync =>
             {
                 Thread.Sleep(30 * 1000);
-                if (Persitant && !LoggingIn)
+                if (Persistant && !LoggingIn)
                 {
                     Login();
                 }
@@ -392,7 +392,7 @@ namespace Jarilo
             switch (args[0])
             {
                 case "logout":
-                    Persitant = false;
+                    Persistant = false;
                     ReplyIm(im, "OK. Bye.");
                     Client.Network.Logout();
                     break;
@@ -519,7 +519,7 @@ namespace Jarilo
 
         public void Logout()
         {
-            Persitant = false;
+            Persistant = false;
             Client.Network.Logout();
         }
     }
