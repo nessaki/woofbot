@@ -431,7 +431,7 @@ namespace Jarilo
                         + "\nlogout - logs me out"
                         + "\nstartup - starts offline bots"
                         + "\nshutdown - logs all bots off"
-                        + "\nstatus - gives you my status"
+                        + "\nstatus - gives the status of all bots"
                         /* Liru Note: These don't seem to work on SL anymore.
                         + "\nappearance - rebake me"
                         + "\nrebake - rebake me forcefully"

@@ -207,6 +207,18 @@ namespace Jarilo
                     case "rebake":
                         SetAppearance(true);
                         break;
+                    case "help":
+                        System.Console.WriteLine("Commands:\n"
+                            + "\nhelp - display this message"
+                            + "\nstartup - starts offline bots"
+                            + "\nshutdown - logs all bots off"
+                            + "\nstatus - gives the status of all bots"
+                            /* Liru Note: These don't seem to work on SL anymore.
+                            + "\nappearance - rebake me"
+                            + "\nrebake - rebake me forcefully"
+                             */
+                            + "\nquit - shutdown and end program");
+                        break;
                 }
             }
         }
