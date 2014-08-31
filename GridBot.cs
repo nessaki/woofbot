@@ -320,7 +320,7 @@ namespace Jarilo
                 {
                     case InstantMessageDialog.RequestTeleport:
                         StatusMsg("Master is requesting teleport");
-                        Client.Self.TeleportLureRespond(e.IM.FromAgentID, true);
+                        Client.Self.TeleportLureRespond(e.IM.FromAgentID, e.IM.IMSessionID, true);
                         break;
                     case InstantMessageDialog.FriendshipOffered:
                         Client.Friends.AcceptFriendship(e.IM.FromAgentID, e.IM.IMSessionID);
