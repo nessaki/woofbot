@@ -1,4 +1,4 @@
-﻿// 
+// 
 // Jarilo
 // Copyright (c) 2010, Jarilo Development Team
 // All rights reserved.

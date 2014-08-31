@@ -1,4 +1,4 @@
-﻿// 
+// 
 // Jarilo
 // Copyright (c) 2010, Jarilo Development Team
 // All rights reserved.
@@ -126,6 +126,7 @@ namespace Jarilo
             Client.Server = Conf.Domain;
             Client.NetworkHost = Conf.NetworkHost;
             Client.Password = Conf.Password;
+            Client.Resource = "bot";
             Client.KeepAlive = 30f;
             Client.AutoLogin = true;
             Client.AutoStartTLS = true;
@@ -274,7 +275,7 @@ namespace Jarilo
                         if (bot != null)
                         {
                             bot.RelayMessage(bridge,
-                                string.Format("(xmpp:{0}) {1}", conf.JID.User, msg.From.Resource),
+                                string.Format("(xmpp:{0}) {1}", bridge.XmppConferenceID, msg.From.Resource),
                                 msg.Body);
                         }
                     }
@@ -285,7 +286,7 @@ namespace Jarilo
                         if (bot != null)
                         {
                             bot.RelayMessage(bridge,
-                                string.Format("(xmpp:{0}) {1}", conf.JID.User, msg.From.Resource),
+                                string.Format("(xmpp:{0}) {1}", bridge.XmppConferenceID, msg.From.Resource),
                                 msg.Body);
                         }
                     }
