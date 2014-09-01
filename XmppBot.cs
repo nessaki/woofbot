@@ -206,13 +206,15 @@ namespace Jarilo
         void room_OnLeave(Room room, jabber.protocol.client.Presence pres)
         {
             Console.WriteLine("Left group chat " + room.RoomAndNick.ToString());
-            if (Client.IsAuthenticated)
+            if (Client != null)
             {
-                var id = room.RoomAndNick;
+                if (Client.IsAuthenticated)
+                {
+                    var id = room.RoomAndNick;
 
-                ThreadPool.QueueUserWorkItem(sync =>
+                    ThreadPool.QueueUserWorkItem(sync =>
                     {
-                        Thread.Sleep(10 * 1000);
+                        Thread.Sleep(10*1000);
                         if (!Client.IsAuthenticated) return;
                         try
                         {
@@ -226,7 +228,8 @@ namespace Jarilo
                             Console.WriteLine("Error joining conference {0}: {1}", id, ex.Message);
                         }
                     }
-                );
+                        );
+                }
             }
 
             lock (Conferences)
