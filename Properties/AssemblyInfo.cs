@@ -35,12 +35,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Jarilo")]
+[assembly: AssemblyTitle("BarkBot")]
 [assembly: AssemblyDescription("3-way chat bridge designed for virtual worlds interop")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Jarilo Development Team")]
-[assembly: AssemblyProduct("Jarilo")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2010")]
+[assembly: AssemblyCompany("Alchemy Development Group")]
+[assembly: AssemblyProduct("BarkBot")]
+[assembly: AssemblyCopyright("Copyright © 2014 Alchemy Development Group | Copyright © 2010 Jarilo Development Team")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -50,7 +50,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("205a911e-7c83-4ef9-908a-c9bed82bad3d")]
+[assembly: Guid("97ADD8C8-5333-4304-B680-DB4D24D976D3")]
 
 // Version information for an assembly consists of the following four values:
 //

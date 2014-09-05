@@ -28,13 +28,14 @@
 //
 // $Id$
 //
+
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using OpenMetaverse;
 
-namespace Jarilo
+namespace BarkBot
 {
     public class GridBot : IDisposable, IRelay
     {

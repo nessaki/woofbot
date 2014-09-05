@@ -28,6 +28,7 @@
 //
 // $Id$
 //
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,7 +38,7 @@ using System.Threading;
 using Meebey.SmartIrc4net;
 using OpenMetaverse;
 
-namespace Jarilo
+namespace BarkBot
 {
     public class IrcBot : IDisposable, IRelay
     {

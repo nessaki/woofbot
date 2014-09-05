@@ -28,17 +28,15 @@
 //
 // $Id$
 //
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using jabber;
 using jabber.client;
 using jabber.connection;
 using OpenMetaverse;
 
-namespace Jarilo
+namespace BarkBot
 {
     public class XmppBot : IDisposable, IRelay
     {

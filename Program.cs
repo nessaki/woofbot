@@ -28,6 +28,7 @@
 //
 // $Id$
 //
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -35,7 +36,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using OpenMetaverse;
 
-namespace Jarilo
+namespace BarkBot
 {
     public class Program
     {

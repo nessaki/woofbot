@@ -28,16 +28,16 @@
 //
 // $Id$
 //
+
 using System;
 using System.Collections.Generic;
-using System.Collections;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.IO;
-using OpenMetaverse;
 using Nini.Config;
+using OpenMetaverse;
 
-namespace Jarilo
+namespace BarkBot
 {
     /// <summary>
     /// Holds parsed config file configuration
