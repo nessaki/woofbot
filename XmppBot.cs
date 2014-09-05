@@ -31,6 +31,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using jabber.client;
 using jabber.connection;
@@ -86,24 +87,6 @@ namespace BarkBot
 
         public void Connect()
         {
-            Conferences.Clear();
-
-            if (ConfManager != null)
-            {
-                ConfManager.Dispose();
-                ConfManager = null;
-            }
-
-            if (Stream != null)
-            {
-                if (Stream.Connected)
-                    Stream.Close(false);
-                Stream = null;
-            }
-
-            if (Client != null)
-                Client.Dispose();
-
             Client = new JabberClient();
             Client.Resource = "BarkBot";
             Client.OnInvalidCertificate += new System.Net.Security.RemoteCertificateValidationCallback(Client_OnInvalidCertificate);
@@ -132,6 +115,11 @@ namespace BarkBot
             Client.AutoPresence = true;
             Client.AutoIQErrors = true;
             Client.Connect();
+        }
+
+        public bool isConnected()
+        {
+            return Conferences.Any(conf => conf.IsParticipating);
         }
 
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
@@ -299,6 +287,7 @@ namespace BarkBot
             }
         }
 
+#if DEBUG_XMPP
         private void Client_OnReadText(object sender, string txt)
         {
             if (txt != " ")
@@ -310,6 +299,7 @@ namespace BarkBot
             if (txt != " ")
                 Console.WriteLine("SENT: " + txt);
         }
+#endif
 
         private void Client_OnError(object sender, Exception ex)
         {

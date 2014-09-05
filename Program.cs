@@ -81,7 +81,14 @@ namespace BarkBot
         {
             foreach (XmppBot bot in XmppBots)
             {
-                bot.Connect();
+                if (!bot.isConnected())
+                {
+                    bot.Connect();
+                }
+                else
+                {
+                    Console.WriteLine("XMPP bot {0} already connected, skipping", bot.Conf.ID);
+                }
             }
 
             foreach (IrcBot bot in IrcBots)
@@ -92,7 +99,7 @@ namespace BarkBot
                 }
                 else
                 {
-                    Console.WriteLine("Irc bot {0} already connected, skipping", bot.Conf.ID);
+                    Console.WriteLine("IRC bot {0} already connected, skipping", bot.Conf.ID);
                 }
             }
 
