@@ -46,7 +46,7 @@ namespace BarkBot
         public List<IrcBot> IrcBots;
         public List<XmppBot> XmppBots;
 
-        public static string Version = "Jarilo 0.1";
+        public static string Version = "BarkBot 0.1";
 
         static void Main(string[] args)
         {

@@ -505,7 +505,7 @@ namespace BarkBot
             ThreadPool.QueueUserWorkItem(sync =>
             {
                 InitializeClient();
-                LoginParams param = Client.Network.DefaultLoginParams(Conf.FirstName, Conf.LastName, Conf.Password, "Jarilo", Program.Version);
+                LoginParams param = Client.Network.DefaultLoginParams(Conf.FirstName, Conf.LastName, Conf.Password, "BarkBot", Program.Version);
                 param.URI = Conf.LoginURI;
                 param.Start = "last";
                 bool success = Client.Network.Login(param);

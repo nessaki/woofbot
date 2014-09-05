@@ -105,7 +105,7 @@ namespace BarkBot
                 Client.Dispose();
 
             Client = new JabberClient();
-            Client.Resource = "JariloRelay";
+            Client.Resource = "BarkBot";
             Client.OnInvalidCertificate += new System.Net.Security.RemoteCertificateValidationCallback(Client_OnInvalidCertificate);
             Client.OnConnect += new jabber.connection.StanzaStreamHandler(Client_OnConnect);
 #if DEBUG_XMPP
