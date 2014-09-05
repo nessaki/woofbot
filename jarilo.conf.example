@@ -1,0 +1,44 @@
+;All [labels] are made up of [type:id]
+;Copy this into ./bin/Debug/ or ./bin/Release/ depending on the build you're using, once you have filled it out
+[master:Master] ;You can have multiple of these fields, just give them a different id, they control the bot via IM
+uuid = 8852f73a-ab0f-4105-a7eb-e1bcdfcfd756 ;Human avatar id
+name = Inusaito Kanya ;Human avatar legacy name
+
+[bot:MyBoy]
+first_name = MyBot ;Required
+last_name = Resident ;Required
+password = Password ;Required
+;sit_on = cae4ad0e-7eba-b6fa-d53c-4d7c4fbb4b42 ;To have the bot sit on an object, right click and copy that object's uuid to here
+;sim = Fluffy ;The region name you want your bot in
+;pos_x = 170
+;pos_y = 185
+;pos_z = 22
+login_uri = https://login.agni.lindenlab.com/cgi-bin/login.cgi
+grid_name = agni
+
+[ircserver:freenode]
+irc_server = irc.freenode.net
+irc_port = 6667
+irc_nick = SinguRelay
+irc_username = SinguRelay
+
+[ircchan:SingularitySL]
+irc_server = freenode ;[ircserver:<This>]
+chan_name = #SingularitySL
+
+;[xmppserver:dummyserv]
+;xmpp_user = username
+;xmpp_domain = blah@chat.com
+;xmpp_server = blah@chat.com
+;xmpp_password = Password
+;xmpp_nick = XMPPBOT
+
+;[xmppconference:SingularitySL]
+;xmpp_server = dummyName ;[xmppserver:<This>]
+;conference = blah@conf.com
+
+[bridge:SingularitySL]
+ircchan = SingularitySL ;[ircchan:<This>]
+;xmppconference = SingularitySL ;[xmppconference:<This>]
+grid_group = 4fa278be-b621-9447-0958-85af4b01cdab ;ID of your group on the grid
+bot = MyBot ;[bot:<This>]
