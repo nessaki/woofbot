@@ -427,19 +427,20 @@ namespace BarkBot
                     ReplyIm(im, "Activated group with uuid: " + group.ToString());
                     break;
                 case "help":
-                    ReplyIm(im, "Commands:\n"
-                        + "\nhelp - display this message"
-                        + "\nlogout - logs me out"
-                        + "\nstartup - starts offline bots"
-                        + "\nshutdown - logs all bots off"
-                        + "\nstatus - gives the status of all bots"
-                        /* Liru Note: These don't seem to work on SL anymore.
-                        + "\nappearance - rebake me"
-                        + "\nrebake - rebake me forcefully"
-                         */
-                        + "\ngroupinfo - get info on all my groups"
-                        + "\ngroupactivate <UUID> - sets my active group to UUID, if provided"
-                        );
+                    var commandList = "Commands:";
+                    commandList += "\nhelp - display this message";
+                    commandList += "\nlogout - logs me out";
+                    commandList += "\nstartup - starts offline bots";
+                    commandList += "\nshutdown - logs all bots off";
+                    commandList += "\nstatus - gives the status of all bots";
+                    if(!Conf.LoginURI.Contains("agni") && !Conf.LoginURI.Contains("aditi")
+                    {
+                        commandList += "\nappearance - rebake me";
+                        commandList += "\nrebake - rebake me forcefully";
+                    }
+                    commandList += "\ngroupinfo - get info on all my groups";
+                    commandList += "\ngroupactivate <UUID> - sets my active group to UUID, if provided";
+                                           ReplyIm(im, commandList);
                     break;
             }
         }
