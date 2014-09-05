@@ -199,7 +199,7 @@ namespace BarkBot
             Client.Settings.STORE_LAND_PATCHES = false;
             Client.Settings.MULTIPLE_SIMS = false;
             Client.Self.Movement.Camera.Far = 5.0f;
-
+    
             Client.Settings.USE_ASSET_CACHE = true;
             Client.Settings.ASSET_CACHE_DIR = "./cache";
             Client.Assets.Cache.AutoPruneEnabled = false;
@@ -433,7 +433,7 @@ namespace BarkBot
                     commandList += "\nstartup - starts offline bots";
                     commandList += "\nshutdown - logs all bots off";
                     commandList += "\nstatus - gives the status of all bots";
-                    if(!Conf.LoginURI.Contains("agni") && !Conf.LoginURI.Contains("aditi")
+                    if(!Conf.LoginURI.Contains("agni") && !Conf.LoginURI.Contains("aditi"))
                     {
                         commandList += "\nappearance - rebake me";
                         commandList += "\nrebake - rebake me forcefully";
