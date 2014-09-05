@@ -117,9 +117,9 @@ namespace BarkBot
             Client.Connect();
         }
 
-        public bool isConnected()
+        public bool IsConnected
         {
-            return Conferences.Any(conf => conf.IsParticipating);
+            get { return Conferences.Any(conf => conf.IsParticipating); }
         }
 
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
@@ -213,8 +213,7 @@ namespace BarkBot
                         {
                             Console.WriteLine("Error joining conference {0}: {1}", id, ex.Message);
                         }
-                    }
-                        );
+                    });
                 }
             }
 

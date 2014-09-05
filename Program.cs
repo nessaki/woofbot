@@ -41,7 +41,7 @@ namespace BarkBot
     public class Program
     {
         string cmd;
-        public Configuration conf;
+        public Configuration Conf;
         public List<GridBot> GridBots;
         public List<IrcBot> IrcBots;
         public List<XmppBot> XmppBots;
@@ -81,7 +81,7 @@ namespace BarkBot
         {
             foreach (XmppBot bot in XmppBots)
             {
-                if (!bot.isConnected())
+                if (!bot.IsConnected)
                 {
                     bot.Connect();
                 }
@@ -165,7 +165,7 @@ namespace BarkBot
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("Masters:");
-            foreach (KeyValuePair<UUID, string> master in conf.Masters)
+            foreach (KeyValuePair<UUID, string> master in Conf.Masters)
             {
                 sb.AppendLine(master.Value + " " + master.Key);
             }
@@ -236,31 +236,31 @@ namespace BarkBot
             Logger.Log(Version + " starting up", Helpers.LogLevel.Info);
             System.Console.WriteLine(Version + " starting up");
 
-            try { conf = new Configuration(@"./"); }
+            try { Conf = new Configuration(@"./"); }
             catch (Exception ex)
             {
                 Console.WriteLine("Failed to read the configuration file: {0}", ex.Message);
                 Environment.Exit(1);
             }
 
-            System.Console.WriteLine("Configuration loaded:\n" + conf);
+            System.Console.WriteLine("Configuration loaded:\n" + Conf);
 
             GridBots = new List<GridBot>();
-            foreach (BotInfo b in conf.Bots)
+            foreach (BotInfo b in Conf.Bots)
             {
-                GridBots.Add(new GridBot(this, b, conf));
+                GridBots.Add(new GridBot(this, b, Conf));
             }
 
             IrcBots = new List<IrcBot>();
-            foreach (IrcServerInfo b in conf.IrcServers)
+            foreach (IrcServerInfo b in Conf.IrcServers)
             {
-                IrcBots.Add(new IrcBot(this, b, conf));
+                IrcBots.Add(new IrcBot(this, b, Conf));
             }
 
             XmppBots = new List<XmppBot>();
-            foreach(XmppServerInfo b in conf.XmppServers)
+            foreach(XmppServerInfo b in Conf.XmppServers)
             {
-                XmppBots.Add(new XmppBot(this, b, conf));
+                XmppBots.Add(new XmppBot(this, b, Conf));
             }
 
 
