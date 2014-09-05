@@ -71,26 +71,16 @@ namespace BarkBot
             }
         }
 
-        public bool Connected
+        public bool IsConnected
         {
-            get
-            {
-                if (Client != null && Client.Network.Connected)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
+            get { return Client != null && Client.Network.Connected; }
         }
 
         public Vector3 Position
         {
             get
             {
-                if (!Connected) return Vector3.Zero;
+                if (!IsConnected) return Vector3.Zero;
 
                 if (SittingOn != null && Client.Self.SittingOn == SittingOn.LocalID)
                     return SittingOn.Position;
@@ -106,12 +96,27 @@ namespace BarkBot
             MainProgram = p;
             Conf = c;
             MainConf = m;
-            networkChecker = new System.Timers.Timer(3 * 60 * 1000);
-            networkChecker.Enabled = false;
-            networkChecker.Elapsed += new System.Timers.ElapsedEventHandler(networkChecker_Elapsed);
-            positionChecker = new System.Timers.Timer(60 * 1000);
-            positionChecker.Enabled = false;
-            positionChecker.Elapsed += new System.Timers.ElapsedEventHandler(positionChecker_Elapsed);
+        }
+
+        public void Connect()
+        {
+            System.Console.WriteLine("Logging in {0}...", Conf.Name);
+            if (networkChecker == null)
+            {
+                networkChecker = new System.Timers.Timer(3*60*1000);
+                networkChecker.Enabled = false;
+                networkChecker.Elapsed += new System.Timers.ElapsedEventHandler(networkChecker_Elapsed);
+            }
+
+            if (positionChecker == null)
+            {
+                positionChecker = new System.Timers.Timer(60*1000);
+                positionChecker.Enabled = false;
+                positionChecker.Elapsed += new System.Timers.ElapsedEventHandler(positionChecker_Elapsed);
+            }
+
+            Login();
+            Persistant = true;
         }
 
         public void SetBotInfo(BotInfo c)
@@ -124,7 +129,7 @@ namespace BarkBot
             StringBuilder sb = new StringBuilder();
 
             sb.AppendFormat("{0:s}]: ", DateTime.Now);
-            if (Connected)
+            if (IsConnected)
             {
                 sb.AppendFormat(" [{0} {1}]", Client.Self.FirstName, Client.Self.LastName);
             }
@@ -134,7 +139,7 @@ namespace BarkBot
 
         void positionChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (!Connected) return;
+            if (!IsConnected) return;
 
             if (Conf.SimHandle != 0 && Client.Network.CurrentSim.Handle != Conf.SimHandle)
             {
@@ -163,7 +168,7 @@ namespace BarkBot
 
         void networkChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (!Connected)
+            if (!IsConnected)
             {
                 StatusMsg(Conf.Name + " not logged in, trying to log in.");
                 if (!LoggingIn)
@@ -177,7 +182,6 @@ namespace BarkBot
         {
             //reinitialize SecondLife object
             CleanUp();
-
 
             Client = new GridClient();
 
@@ -214,33 +218,45 @@ namespace BarkBot
 
         public void CleanUp()
         {
-            if (Client == null) return;
+            if (Client != null)
+            {
+                Client.Network.SimChanged -= new EventHandler<SimChangedEventArgs>(Network_SimChanged);
+                Client.Network.Disconnected -= new EventHandler<DisconnectedEventArgs>(Network_Disconnected);
+                Client.Network.LoginProgress -= new EventHandler<LoginProgressEventArgs>(Network_LoginProgress);
+                Client.Self.IM -= new EventHandler<InstantMessageEventArgs>(Self_IM);
+                Client.Objects.ObjectUpdate -= new EventHandler<PrimEventArgs>(Objects_ObjectUpdate);
 
-            Client.Network.SimChanged -= new EventHandler<SimChangedEventArgs>(Network_SimChanged);
-            Client.Network.Disconnected -= new EventHandler<DisconnectedEventArgs>(Network_Disconnected);
-            Client.Network.LoginProgress -= new EventHandler<LoginProgressEventArgs>(Network_LoginProgress);
-            Client.Self.IM -= new EventHandler<InstantMessageEventArgs>(Self_IM);
-            Client.Objects.ObjectUpdate -= new EventHandler<PrimEventArgs>(Objects_ObjectUpdate);
-
-            SittingOn = null;
-            Client = null;
+                SittingOn = null;
+                Client = null;
+            }
         }
 
         public void Dispose()
         {
-            if (networkChecker != null)
-            {
-                networkChecker.Dispose();
-                networkChecker = null;
-            }
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
-            if (positionChecker != null)
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                positionChecker.Dispose();
-                positionChecker = null;
-            }
+                Logout();
 
-            CleanUp();
+                if (networkChecker != null)
+                {
+                    networkChecker.Dispose();
+                    networkChecker = null;
+                }
+
+                if (positionChecker != null)
+                {
+                    positionChecker.Dispose();
+                    positionChecker = null;
+                }
+
+                CleanUp();
+            }
         }
 
         void Objects_ObjectUpdate(object sender, PrimEventArgs e)

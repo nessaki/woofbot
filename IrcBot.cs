@@ -75,7 +75,13 @@ namespace BarkBot
 
         public void Dispose()
         {
-            try
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
             {
                 if (irc != null)
                 {
@@ -91,7 +97,6 @@ namespace BarkBot
                     IRCConnection = null;
                 }
             }
-            catch { }
         }
 
         List<string> SplitMessage(string message)

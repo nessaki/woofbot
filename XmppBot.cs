@@ -58,31 +58,40 @@ namespace BarkBot
 
         public void Dispose()
         {
-            foreach (Room conf in Conferences)
-            {
-                if (conf.IsParticipating)
-                    conf.Leave("client quit");
-            }
-            Conferences.Clear();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
-            if (ConfManager != null)
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                ConfManager.Dispose();
-                ConfManager = null;
-            }
+                foreach (Room conf in Conferences)
+                {
+                    if (conf.IsParticipating)
+                        conf.Leave("client quit");
+                }
+                Conferences.Clear();
 
-            if (Stream != null)
-            {
-                if (Stream.Connected)
-                    Stream.Close(false);
-                Stream = null;
-            }
+                if (ConfManager != null)
+                {
+                    ConfManager.Dispose();
+                    ConfManager = null;
+                }
 
-            if (Client != null)
-            {
-                Client.Dispose();
+                if (Stream != null)
+                {
+                    if (Stream.Connected)
+                        Stream.Close(false);
+                    Stream = null;
+                }
+
+                if (Client != null)
+                {
+                    Client.Dispose();
+                }
+                Client = null;
             }
-            Client = null;
         }
 
         public void Connect()

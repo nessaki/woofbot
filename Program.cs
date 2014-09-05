@@ -59,7 +59,7 @@ namespace BarkBot
             int nr = 0;
             foreach (GridBot bot in GridBots)
             {
-                if (bot.Connected)
+                if (bot.IsConnected)
                 {
                     nr++;
                 }
@@ -105,11 +105,9 @@ namespace BarkBot
 
             foreach (GridBot bot in GridBots)
             {
-                if (!bot.Connected)
+                if (!bot.IsConnected)
                 {
-                    System.Console.WriteLine("Logging in {0}...", bot.Conf.Name);
-                    bot.Login();
-                    bot.Persistant = true;
+                    bot.Connect();
                 }
                 else
                 {
@@ -132,11 +130,10 @@ namespace BarkBot
 
             foreach (GridBot bot in GridBots)
             {
-                if (bot.Connected)
+                if (bot.IsConnected)
                 {
                     System.Console.WriteLine("Logging out {0}...", bot.Conf.Name);
-                    bot.Logout();
-                    bot.CleanUp();
+                    bot.Dispose();
                 }
                 else
                 {
@@ -151,7 +148,7 @@ namespace BarkBot
             {
                 foreach (GridBot bot in GridBots)
                 {
-                    if (bot.Connected)
+                    if (bot.IsConnected)
                     {
                         bot.Client.Appearance.RequestSetAppearance(rebake);
                         System.Console.WriteLine("{0} is setting appearance.", bot.Conf.Name);
@@ -176,7 +173,7 @@ namespace BarkBot
             foreach (GridBot bot in GridBots)
             {
                 sb.Append(bot.Conf.Name);
-                if (!bot.Connected)
+                if (!bot.IsConnected)
                 {
                     sb.AppendLine(" is offline.");
                 }
@@ -262,7 +259,6 @@ namespace BarkBot
             {
                 XmppBots.Add(new XmppBot(this, b, Conf));
             }
-
 
             if (args.Length > 0)
             {
