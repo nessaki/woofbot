@@ -310,7 +310,7 @@ namespace BarkBot
             IRCConnection = new Thread(new ParameterizedThreadStart(IrcThread));
             IRCConnection.Name = "IRC Thread";
             IRCConnection.IsBackground = true;
-            IRCConnection.Start(new object[] { Conf.ServerHost, Conf.ServerPort, Conf.Nick, Conf.Channels.Values.ToArray() });
+            IRCConnection.Start(new object[] { Conf.ServerHost, Conf.ServerPort, Conf.Nick, Conf.Username, Conf.Channels.Values.ToArray() });
         }
 
         private void IrcThread(object param)
@@ -319,7 +319,8 @@ namespace BarkBot
             string server = (string)args[0];
             int port = (int)args[1];
             string nick = (string)args[2];
-            string[] chan = (string[])args[3];
+            string username = (string) args[3];
+            string[] chan = (string[])args[4];
 
             PrintMsg("IRC - " + Conf.ID, "Connecting...");
 
@@ -327,7 +328,7 @@ namespace BarkBot
             {
                 irc.Connect(server, port);
                 PrintMsg("System", "Logging in...");
-                irc.Login(nick, "Singularity SL Relay", 0, nick);
+                irc.Login(nick, "BarkBot System", 0, username);
                 for (int i = 0; i < chan.Length; i++)
                     irc.RfcJoin(chan[i]);
             }
