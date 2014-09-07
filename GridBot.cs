@@ -321,7 +321,7 @@ namespace BarkBot
                 }
             }
 
-            if (!MainConf.IsMaster(e.IM.FromAgentName))
+            if (!MainConf.IsMaster(e.IM.FromAgentID))
             {
                 if (e.IM.Dialog.Equals(InstantMessageDialog.MessageFromAgent) || e.IM.Dialog.Equals(InstantMessageDialog.InventoryOffered))
                 {
@@ -336,8 +336,12 @@ namespace BarkBot
                 switch (e.IM.Dialog)
                 {
                     case InstantMessageDialog.RequestTeleport:
-                        StatusMsg("Master is requesting teleport");
+                        StatusMsg("Master is sending teleport");
                         Client.Self.TeleportLureRespond(e.IM.FromAgentID, e.IM.IMSessionID, true);
+                        break;
+                    case InstantMessageDialog.RequestLure:
+                        StatusMsg("Master is requesting teleport");
+                        Client.Self.SendTeleportLure(e.IM.FromAgentID);
                         break;
                     case InstantMessageDialog.FriendshipOffered:
                         Client.Friends.AcceptFriendship(e.IM.FromAgentID, e.IM.IMSessionID);
