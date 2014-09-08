@@ -336,11 +336,11 @@ namespace BarkBot
                 switch (e.IM.Dialog)
                 {
                     case InstantMessageDialog.RequestTeleport:
-                        StatusMsg("Master is sending teleport");
+                        StatusMsg(string.Format("Master {0} is sending teleport", e.IM.FromAgentName));
                         Client.Self.TeleportLureRespond(e.IM.FromAgentID, e.IM.IMSessionID, true);
                         break;
                     case InstantMessageDialog.RequestLure:
-                        StatusMsg("Master is requesting teleport");
+                        StatusMsg(string.Format("Master {0} is requesting teleport", e.IM.FromAgentName));
                         Client.Self.SendTeleportLure(e.IM.FromAgentID);
                         break;
                     case InstantMessageDialog.FriendshipOffered:
@@ -440,11 +440,45 @@ namespace BarkBot
                     GetGroupInfo(im);
                     break;
                 case "groupactivate":
-                    UUID group = UUID.Zero;
-                    try { UUID.TryParse(im.Message.Split(' ')[1].Trim(), out group); }
+                    UUID groupID = UUID.Zero;
+                    try { UUID.TryParse(im.Message.Split(' ')[1].Trim(), out groupID); }
                     catch { }
-                    Client.Groups.ActivateGroup(group);
-                    ReplyIm(im, "Activated group with uuid: " + group.ToString());
+                    Client.Groups.ActivateGroup(groupID);
+                    ReplyIm(im, "Activated group with uuid: " + groupID.ToString());
+                    break;
+                case "sendteleport":
+                    UUID avatarID = UUID.Zero;
+                    try
+                    {
+                        UUID.TryParse(im.Message.Split(' ')[1].Trim(), out avatarID);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed to parse uuid in command sendteleport: {0}", ex.Message);
+                    }
+                    if (avatarID != UUID.Zero)
+
+                        Client.Self.SendTeleportLure(avatarID);
+                    break;
+                case "siton":
+                    UUID objectID = UUID.Zero;
+                    try
+                    {
+                        UUID.TryParse(im.Message.Split(' ')[1].Trim(), out objectID);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed to parse uuid in command siton: {0}", ex.Message);
+                    }
+                    if (objectID != UUID.Zero)
+                    {
+                        if (SittingOn != null)
+                        {
+                            Client.Self.Stand();
+                        }
+                        Client.Self.RequestSit(objectID, Vector3.Zero);
+                        Client.Self.Sit();
+                    }
                     break;
                 case "help":
                     var commandList = "Commands:";
@@ -453,14 +487,13 @@ namespace BarkBot
                     commandList += "\nstartup - starts offline bots";
                     commandList += "\nshutdown - logs all bots off";
                     commandList += "\nstatus - gives the status of all bots";
-                    if(!Conf.LoginURI.Contains("agni") && !Conf.LoginURI.Contains("aditi"))
-                    {
-                        commandList += "\nappearance - rebake me";
-                        commandList += "\nrebake - rebake me forcefully";
-                    }
+                    commandList += "\nappearance - rebake me";
+                    commandList += "\nrebake - rebake me forcefully";
                     commandList += "\ngroupinfo - get info on all my groups";
                     commandList += "\ngroupactivate <UUID> - sets my active group to UUID, if provided";
-                                           ReplyIm(im, commandList);
+                    commandList += "\nsendteleport <UUID> - Send a teleport request to avatar";
+                    commandList += "\nsiton <UUID> - Sit on object";
+                    ReplyIm(im, commandList);
                     break;
             }
         }
