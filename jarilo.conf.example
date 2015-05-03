@@ -4,7 +4,7 @@
 uuid = 8852f73a-ab0f-4105-a7eb-e1bcdfcfd756 ;Human avatar id
 name = Inusaito Kanya ;Human avatar legacy name
 
-[bot:MyBoy]
+[bot:MyBot]
 first_name = MyBot ;Required
 last_name = Resident ;Required
 password = Password ;Required
