@@ -92,7 +92,7 @@ namespace BarkBot
                 }
                 if (channel != null)
                 {
-                    Client.PostMessage((o) => { if (!o.ok) Console.WriteLine("Slack - Failed to send message: " + o.error); }, confChan, msg, from);
+                    Client.PostMessage((o) => { if (!o.ok) Console.WriteLine("Slack - Failed to send message: " + o.error); }, channel.id, msg, from);
                 }
             }
         }
