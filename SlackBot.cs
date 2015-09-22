@@ -31,7 +31,7 @@ namespace BarkBot
 
         private void Client_OnMessageReceived(SlackAPI.WebSocketMessages.NewMessage msg)
         {
-            if (msg.ok)
+            if (msg.ok && Conf.Channels.Any(x => x.Value == Client.ChannelLookup[msg.channel].name))
             {
                 System.Console.WriteLine("(slack:{0}) {1}: {2}", msg.team, msg.user, msg.text);
                 try
@@ -40,7 +40,7 @@ namespace BarkBot
                     {
                         return
                             b.SlackServerConf == Conf &&
-                            Conf.Channels[b.SlackChannelID] == msg.channel;
+                            Conf.Channels[b.SlackChannelID] == Client.ChannelLookup[msg.channel].name;
                     });
 
                     foreach (BridgeInfo bridge in bridges)
