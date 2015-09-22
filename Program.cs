@@ -44,7 +44,7 @@ namespace BarkBot
         public Configuration Conf;
         public List<GridBot> GridBots;
         public List<IrcBot> IrcBots;
-        public List<XmppBot> XmppBots;
+        public List<SlackBot> SlackBots;
 
         public static string Version = "BarkBot 0.1";
 
@@ -79,7 +79,7 @@ namespace BarkBot
 
         public void CmdStartup()
         {
-            foreach (XmppBot bot in XmppBots)
+            foreach (SlackBot bot in SlackBots)
             {
                 if (!bot.IsConnected)
                 {
@@ -87,7 +87,7 @@ namespace BarkBot
                 }
                 else
                 {
-                    Console.WriteLine("XMPP bot {0} already connected, skipping", bot.Conf.ID);
+                    Console.WriteLine("Slack bot {0} already connected, skipping", bot.Conf.ID);
                 }
             }
 
@@ -118,11 +118,6 @@ namespace BarkBot
 
         public void CmdShutdown()
         {
-            foreach (XmppBot bot in XmppBots)
-            {
-                bot.Dispose();
-            }
-
             foreach (IrcBot bot in IrcBots)
             {
                 bot.Dispose();
@@ -254,10 +249,10 @@ namespace BarkBot
                 IrcBots.Add(new IrcBot(this, b, Conf));
             }
 
-            XmppBots = new List<XmppBot>();
-            foreach(XmppServerInfo b in Conf.XmppServers)
+            SlackBots = new List<SlackBot>();
+            foreach(SlackServerInfo b in Conf.SlackServers)
             {
-                XmppBots.Add(new XmppBot(this, b, Conf));
+                SlackBots.Add(new SlackBot(this, b, Conf));
             }
 
             if (args.Length > 0)

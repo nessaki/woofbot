@@ -26,19 +26,15 @@ irc_username = SinguRelay
 irc_server = freenode ;[ircserver:<This>]
 chan_name = #SingularitySL
 
-;[xmppserver:dummyserv]
-;xmpp_user = username
-;xmpp_domain = blah@chat.com
-;xmpp_server = blah@chat.com
-;xmpp_password = Password
-;xmpp_nick = XMPPBOT
+;[slack:dummyserv]
+;slack_key = somekeyorsomething
 
-;[xmppconference:SingularitySL]
-;xmpp_server = dummyName ;[xmppserver:<This>]
-;conference = blah@conf.com
+;[slackchannel:relay]
+;slack_server = dummyserv ;[slack:<This>]
+;channel = relay
 
 [bridge:SingularitySL]
 ircchan = SingularitySL ;[ircchan:<This>]
-;xmppconference = SingularitySL ;[xmppconference:<This>]
+;slackchannel = relay ;[slackchannel:<This>]
 grid_group = 4fa278be-b621-9447-0958-85af4b01cdab ;ID of your group on the grid
 bot = MyBot ;[bot:<This>]

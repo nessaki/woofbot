@@ -200,9 +200,9 @@ namespace BarkBot
                                 }
                             }
 
-                            if (bridge.XmppServerConf != null)
+                            if (bridge.SlackServerConf != null)
                             {
-                                XmppBot bot = MainProgram.XmppBots.Find((XmppBot b) => { return b.Conf == bridge.XmppServerConf; });
+                                SlackBot bot = MainProgram.SlackBots.Find((SlackBot b) => { return b.Conf == bridge.SlackServerConf; });
                                 if (bot != null)
                                 {
                                     bot.RelayMessage(bridge,
@@ -261,9 +261,9 @@ namespace BarkBot
                             }
                         }
 
-                        if (bridge.XmppServerConf != null)
+                        if (bridge.SlackServerConf != null)
                         {
-                            XmppBot bot = MainProgram.XmppBots.Find((XmppBot b) => { return b.Conf == bridge.XmppServerConf; });
+                            SlackBot bot = MainProgram.SlackBots.Find((SlackBot b) => { return b.Conf == bridge.SlackServerConf; });
                             if (bot != null)
                             {
                                 bot.RelayMessage(bridge,

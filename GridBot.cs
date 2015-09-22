@@ -314,10 +314,10 @@ namespace BarkBot
                 {
                     ircbot.RelayMessage(bridge, from, e.IM.Message);
                 }
-                XmppBot xmppbot = MainProgram.XmppBots.Find((XmppBot ib) => { return ib.Conf == bridge.XmppServerConf; });
-                if (xmppbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
+                SlackBot slackbot = MainProgram.SlackBots.Find((SlackBot ib) => { return ib.Conf == bridge.SlackServerConf; });
+                if (slackbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
                 {
-                    xmppbot.RelayMessage(bridge, from, e.IM.Message);
+                    slackbot.RelayMessage(bridge, from, e.IM.Message);
                 }
             }
 

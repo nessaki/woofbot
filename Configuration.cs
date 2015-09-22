@@ -82,19 +82,15 @@ namespace BarkBot
         }
     }
 
-    public class XmppServerInfo
+    public class SlackServerInfo
     {
         public string ID { get; set; }
-        public string User { get; set; }
-        public string Domain { get; set; }
-        public string Password { get; set; }
-        public string NetworkHost { get; set; }
-        public string Nick { get; set; }
-        public Dictionary<string, string> Conferences { get; set; }
+        public string APIKEY { get; set; }
+        public Dictionary<string, string> Channels { get; set; }
 
-        public XmppServerInfo()
+        public SlackServerInfo()
         {
-            Conferences = new Dictionary<string, string>();
+            Channels = new Dictionary<string, string>();
         }
     }
 
@@ -105,8 +101,8 @@ namespace BarkBot
         public UUID GridGroup { get; set; }
         public IrcServerInfo IrcServerConf { get; set; }
         public string IrcChanID { get; set; }
-        public XmppServerInfo XmppServerConf { get; set; }
-        public string XmppConferenceID { get; set; }
+        public SlackServerInfo SlackServerConf { get; set; }
+        public string SlackChannelID { get; set; }
     }
 
     public class Configuration
@@ -115,7 +111,7 @@ namespace BarkBot
         public Dictionary<UUID, string> Masters = new Dictionary<UUID, string>();
         public List<BotInfo> Bots = new List<BotInfo>();
         public List<IrcServerInfo> IrcServers = new List<IrcServerInfo>();
-        public List<XmppServerInfo> XmppServers = new List<XmppServerInfo>();
+        public List<SlackServerInfo> SlackServers = new List<SlackServerInfo>();
         public List<BridgeInfo> Bridges = new List<BridgeInfo>();
 
         public Dictionary<string, ulong> Regions = new Dictionary<string, ulong>();
@@ -236,36 +232,32 @@ namespace BarkBot
                         Console.WriteLine("Failed parsing section {0}: {1}", conf.Name, ex.Message);
                     }
                 }
-                else if (type == "xmppserver")
+                else if (type == "slack")
                 {
                     try
                     {
-                        XmppServerInfo si = new XmppServerInfo();
+                        SlackServerInfo si = new SlackServerInfo();
                         si.ID = id;
-                        si.User = conf.GetString("xmpp_user");
-                        si.Domain = conf.GetString("xmpp_domain");
-                        si.NetworkHost = conf.GetString("xmpp_server");
-                        si.Password = conf.GetString("xmpp_password");
-                        si.Nick = conf.GetString("xmpp_nick", si.User);
-                        XmppServers.Add(si);
+                        si.APIKEY = conf.GetString("slack_key");
+                        SlackServers.Add(si);
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine("Failed parsing section {0}: {1}", conf.Name, ex.Message);
                     }
                 }
-                else if (type == "xmppconference")
+                else if (type == "slackchannel")
                 {
                     try
                     {
-                        string server_id = conf.GetString("xmpp_server");
-                        XmppServerInfo si = XmppServers.Find((XmppServerInfo s) => { return s.ID == server_id; });
+                        string server_id = conf.GetString("slack_server");
+                        SlackServerInfo si = SlackServers.Find((SlackServerInfo s) => { return s.ID == server_id; });
                         if (si == null)
                         {
                             Console.WriteLine("Warning, unknown server in section [{0}]", conf.Name);
                             continue;
                         }
-                        si.Conferences[id] = conf.GetString("conference");
+                        si.Channels[id] = conf.GetString("channel");
                     }
                     catch (Exception ex)
                     {
@@ -284,8 +276,8 @@ namespace BarkBot
                         UUID.TryParse(conf.GetString("grid_group"), out groupID);
                         bi.GridGroup = groupID;
                         bi.Bot = Bots.Find((BotInfo b) => { return b.ID == conf.GetString("bot"); });
-                        bi.XmppConferenceID = conf.GetString("xmppconference");
-                        bi.XmppServerConf = XmppServers.Find((XmppServerInfo xmpp) => { return xmpp.Conferences.ContainsKey(bi.XmppConferenceID); });
+                        bi.SlackChannelID = conf.GetString("slackroom");
+                        bi.SlackServerConf = SlackServers.Find((SlackServerInfo slack) => { return slack.Channels.ContainsKey(bi.SlackChannelID); });
                         Bridges.Add(bi);
                     }
                     catch (Exception ex)
