@@ -33,14 +33,15 @@ namespace BarkBot
         {
             if (msg.ok && Conf.Channels.Any(x => x.Value == Client.ChannelLookup[msg.channel].name))
             {
-                System.Console.WriteLine("(slack:{0}) {1}: {2}", msg.team, msg.user, msg.text);
+                string channel_name = Client.ChannelLookup[msg.channel].name;
+                System.Console.WriteLine("(slack:{0}) {1}: {2}", channel_name, msg.user, msg.text);
                 try
                 {
                     List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
                     {
                         return
                             b.SlackServerConf == Conf &&
-                            Conf.Channels[b.SlackChannelID] == Client.ChannelLookup[msg.channel].name;
+                            Conf.Channels[b.SlackChannelID] == channel_name;
                     });
 
                     foreach (BridgeInfo bridge in bridges)
@@ -51,7 +52,7 @@ namespace BarkBot
                             if (bot != null)
                             {
                                 bot.RelayMessage(bridge,
-                                    string.Format("(slack:{0}) {1}", bridge.SlackChannelID, msg.user),
+                                    string.Format("(slack:{0}) {1}", channel_name, msg.user),
                                     msg.text);
                             }
                         }
@@ -62,7 +63,7 @@ namespace BarkBot
                             if (bot != null)
                             {
                                 bot.RelayMessage(bridge,
-                                    string.Format("(slack:{0}) {1}", bridge.SlackChannelID, msg.user),
+                                    string.Format("(slack:{0}) {1}", channel_name, msg.user),
                                     msg.text);
                             }
                         }
