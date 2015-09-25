@@ -31,10 +31,11 @@ namespace BarkBot
 
         private void Client_OnMessageReceived(SlackAPI.WebSocketMessages.NewMessage msg)
         {
-            if (msg.ok && Conf.Channels.Any(x => x.Value == Client.ChannelLookup[msg.channel].name))
+            if (msg.ok && msg.subtype != "bot_message" && Conf.Channels.Any(x => x.Value == Client.ChannelLookup[msg.channel].name))
             {
                 string channel_name = Client.ChannelLookup[msg.channel].name;
-                System.Console.WriteLine("(slack:{0}) {1}: {2}", channel_name, msg.user, msg.text);
+                string user_name = Client.UserLookup[msg.user].name;
+                System.Console.WriteLine("(slack:{0}) {1}: {2}", channel_name, user_name, msg.text);
                 try
                 {
                     List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
@@ -52,7 +53,7 @@ namespace BarkBot
                             if (bot != null)
                             {
                                 bot.RelayMessage(bridge,
-                                    string.Format("(slack:{0}) {1}", channel_name, msg.user),
+                                    string.Format("(slack:{0}) {1}", channel_name, user_name),
                                     msg.text);
                             }
                         }
@@ -63,7 +64,7 @@ namespace BarkBot
                             if (bot != null)
                             {
                                 bot.RelayMessage(bridge,
-                                    string.Format("(slack:{0}) {1}", channel_name, msg.user),
+                                    string.Format("(slack:{0}) {1}", channel_name, user_name),
                                     msg.text);
                             }
                         }
@@ -78,7 +79,7 @@ namespace BarkBot
 
         public bool IsConnected
         {
-            get { return Client.IsConnected; }
+            get { return (Client != null) ? Client.IsConnected : false; }
         }
 
         public void RelayMessage(BridgeInfo bridge, string from, string msg)

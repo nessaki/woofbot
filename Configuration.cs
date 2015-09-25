@@ -276,7 +276,7 @@ namespace BarkBot
                         UUID.TryParse(conf.GetString("grid_group"), out groupID);
                         bi.GridGroup = groupID;
                         bi.Bot = Bots.Find((BotInfo b) => { return b.ID == conf.GetString("bot"); });
-                        bi.SlackChannelID = conf.GetString("slackroom");
+                        bi.SlackChannelID = conf.GetString("slackchannel");
                         bi.SlackServerConf = SlackServers.Find((SlackServerInfo slack) => { return slack.Channels.ContainsKey(bi.SlackChannelID); });
                         Bridges.Add(bi);
                     }
