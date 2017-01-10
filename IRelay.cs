@@ -29,10 +29,13 @@
 // $Id$
 //
 
-namespace BarkBot
+namespace WoofBot
 {
     public interface IRelay
     {
         void RelayMessage(BridgeInfo bridge, string from, string msg);
+        bool IsConnected();
+        void Connect();
+        AInfo GetConf();
     }
 }

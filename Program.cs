@@ -35,8 +35,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using OpenMetaverse;
+using System.Linq;
 
-namespace BarkBot
+namespace WoofBot
 {
     public class Program
     {
@@ -45,139 +46,76 @@ namespace BarkBot
         public List<GridBot> GridBots;
         public List<IrcBot> IrcBots;
         public List<SlackBot> SlackBots;
+        public List<DiscordBot> DiscordBots;
 
-        public static string Version = "BarkBot 0.1";
+        public static string Version = "WoofBot 0.2";
 
-        static void Main(string[] args)
-        {
-            Program p = new Program();
-            p.Run(args);
-        }
+        static void Main(string[] args) => new Program().Run(args);
 
-        public int OnlineBots()
-        {
-            int nr = 0;
-            foreach (GridBot bot in GridBots)
-            {
-                if (bot.IsConnected)
-                {
-                    nr++;
-                }
-            }
-            return nr;
-        }
+        public int OnlineBots() => GridBots.Count(bot => bot.IsConnected());
 
-        public int TotalBots()
-        {
-            return GridBots.Count;
-        }
+        public int TotalBots() => GridBots.Count;
 
         void DisplayPrompt()
-        {
-            System.Console.Write("[Bot {0} of {1} online]> ", OnlineBots(), TotalBots());
-        }
+            => Console.Write($"[Bot {OnlineBots()} of {TotalBots()} online]> ");
+
+	    public void StartRelay<T>(string type, List<T> Bots) where T:IRelay
+            => Bots.ForEach(bot =>
+            {
+                if (!bot.IsConnected())
+                    bot.Connect();
+                else
+                    Console.WriteLine($"{type} bot {bot.GetConf().ID} already connected, skipping");
+            });
 
         public void CmdStartup()
         {
-            foreach (SlackBot bot in SlackBots)
-            {
-                if (!bot.IsConnected)
-                {
-                    bot.Connect();
-                }
-                else
-                {
-                    Console.WriteLine("Slack bot {0} already connected, skipping", bot.Conf.ID);
-                }
-            }
-
-            foreach (IrcBot bot in IrcBots)
-            {
-                if (!bot.irc.IsConnected)
-                {
-                    bot.Connect();
-                }
-                else
-                {
-                    Console.WriteLine("IRC bot {0} already connected, skipping", bot.Conf.ID);
-                }
-            }
-
-            foreach (GridBot bot in GridBots)
-            {
-                if (!bot.IsConnected)
-                {
-                    bot.Connect();
-                }
-                else
-                {
-                    System.Console.WriteLine("{0} already online, skipping.", bot.Conf.Name);
-                }
-            }
+            StartRelay("Discord", DiscordBots);
+            StartRelay("Slack", SlackBots);
+            StartRelay("IRC", IrcBots);
+            StartRelay("Metaverse", GridBots);
         }
 
         public void CmdShutdown()
         {
-            foreach (IrcBot bot in IrcBots)
-            {
-                bot.Dispose();
-            }
+            IrcBots.ForEach(bot => bot.Dispose());
 
-            foreach (GridBot bot in GridBots)
+            GridBots.ForEach(bot =>
             {
-                if (bot.IsConnected)
+                if (bot.IsConnected())
                 {
-                    System.Console.WriteLine("Logging out {0}...", bot.Conf.Name);
+                    Console.WriteLine($"Logging out {bot.Conf.Name}...");
                     bot.Dispose();
                 }
                 else
                 {
-                    System.Console.WriteLine("{0} already offline, skipping.", bot.Conf.Name);
-                }
-            }
-        }
-
-        void SetAppearance(bool rebake)
-        {
-            ThreadPool.QueueUserWorkItem(sync =>
-            {
-                foreach (GridBot bot in GridBots)
-                {
-                    if (bot.IsConnected)
-                    {
-                        bot.Client.Appearance.RequestSetAppearance(rebake);
-                        System.Console.WriteLine("{0} is setting appearance.", bot.Conf.Name);
-                    }
-                    Thread.Sleep(1500);
+                    Console.WriteLine($"{bot.Conf.Name} already offline, skipping.");
                 }
             });
         }
 
+        void SetAppearance(bool rebake)
+            => ThreadPool.QueueUserWorkItem(sync => GridBots.ForEach(bot =>
+            {
+                if (bot.IsConnected())
+                {
+                    bot.Client.Appearance.RequestSetAppearance(rebake);
+                    Console.WriteLine($"{bot.Conf.Name} is setting appearance.");
+                }
+                Thread.Sleep(1500);
+            }));
+
         public string CmdStatus()
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.AppendLine("Masters:");
-            foreach (KeyValuePair<UUID, string> master in Conf.Masters)
-            {
-                sb.AppendLine(master.Value + " " + master.Key);
-            }
+            foreach (var master in Conf.Masters)
+                sb.AppendLine($"{master.Value} {master.Key}");
 
-            sb.AppendLine();
-            sb.AppendLine("Bots:");
+            sb.AppendLine("\nBots:");
 
-            foreach (GridBot bot in GridBots)
-            {
-                sb.Append(bot.Conf.Name);
-                if (!bot.IsConnected)
-                {
-                    sb.AppendLine(" is offline.");
-                }
-                else
-                {
-                    sb.AppendLine(" is in " + bot.Client.Network.CurrentSim.Name + " at " + bot.Position);
-                }
-            }
-            System.Console.WriteLine(sb.ToString());
+            GridBots.ForEach(bot =>
+                sb.AppendLine($"{bot.Conf.Name} is {(bot.IsConnected() ? $"in {bot.Client.Network.CurrentSim.Name} at {bot.Position}" : "offline")}."));
             return sb.ToString();
         }
 
@@ -186,7 +124,7 @@ namespace BarkBot
             Regex splitter = new Regex(@" +");
             string[] args = splitter.Split(line.Trim());
 
-            if (args.Length > 0 && args[0] != "")
+            if (args.Length > 0 && args[0].Length != 0)
             {
                 cmd = args[0];
 
@@ -199,7 +137,7 @@ namespace BarkBot
                         CmdShutdown();
                         break;
                     case "status":
-                        CmdStatus();
+                        Console.WriteLine(CmdStatus());
                         break;
                     case "appearance":
                         SetAppearance(false);
@@ -208,7 +146,7 @@ namespace BarkBot
                         SetAppearance(true);
                         break;
                     case "help":
-                        System.Console.WriteLine("Commands:\n"
+                        Console.WriteLine("Commands:\n"
                             + "\nhelp - display this message"
                             + "\nstartup - starts offline bots"
                             + "\nshutdown - logs all bots off"
@@ -226,48 +164,36 @@ namespace BarkBot
         void Run(string[] args)
         {
             Logger.Log(Version + " starting up", Helpers.LogLevel.Info);
-            System.Console.WriteLine(Version + " starting up");
+            Console.WriteLine(Version + " starting up");
 
             try { Conf = new Configuration(@"./"); }
             catch (Exception ex)
             {
-                Console.WriteLine("Failed to read the configuration file: {0}", ex.Message);
+                Console.WriteLine($"Failed to read the configuration file: {ex.Message}");
                 Environment.Exit(1);
             }
 
-            System.Console.WriteLine("Configuration loaded:\n" + Conf);
+            Console.WriteLine("Configuration loaded:\n" + Conf);
 
             GridBots = new List<GridBot>();
-            foreach (BotInfo b in Conf.Bots)
-            {
-                GridBots.Add(new GridBot(this, b, Conf));
-            }
+            Conf.Bots.ForEach(b => GridBots.Add(new GridBot(this, b, Conf)));
 
             IrcBots = new List<IrcBot>();
-            foreach (IrcServerInfo b in Conf.IrcServers)
-            {
-                IrcBots.Add(new IrcBot(this, b, Conf));
-            }
+            Conf.IrcServers.ForEach(b => IrcBots.Add(new IrcBot(this, b, Conf)));
 
             SlackBots = new List<SlackBot>();
-            foreach(SlackServerInfo b in Conf.SlackServers)
-            {
-                SlackBots.Add(new SlackBot(this, b, Conf));
-            }
+            Conf.SlackServers.ForEach(b => SlackBots.Add(new SlackBot(this, b, Conf)));
 
-            if (args.Length > 0)
-            {
-                cmd = args[0];
-                if (cmd == "startup")
-                {
-                    CmdStartup();
-                }
-            }
+            DiscordBots = new List<DiscordBot>();
+            Conf.DiscordServers.ForEach(b => DiscordBots.Add(new DiscordBot(this, b, Conf)));
+
+            if (args.Length > 0 && (cmd = args[0]) == "startup")
+                CmdStartup();
 
             while (cmd != "quit")
             {
                 DisplayPrompt();
-                string inputLine = System.Console.ReadLine();
+                string inputLine = Console.ReadLine();
                 if (inputLine == null)
                 {
                     cmd = "quit";

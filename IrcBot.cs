@@ -36,41 +36,60 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Meebey.SmartIrc4net;
+using Nini.Config;
 using OpenMetaverse;
 
-namespace BarkBot
+namespace WoofBot
 {
+    public class IrcServerInfo : AChanStringsInfo
+    {
+        public string ServerHost;
+        public int ServerPort = 6667;
+        public string Nick;
+        public string Username;
+
+        public static IrcServerInfo Create(IniConfig conf, string id)
+            => new IrcServerInfo()
+            {
+                ID = id,
+                ServerHost = conf.GetString("irc_server"),
+                ServerPort = conf.GetInt("irc_port", 6667),
+                Nick = conf.GetString("irc_nick"),
+                Username = conf.GetString(conf.Contains("irc_username") ? "irc_username" : "irc_nick")
+            };
+    }
+
     public class IrcBot : IDisposable, IRelay
     {
         Program MainProgram;
         public IrcServerInfo Conf;
+        public AInfo GetConf() => Conf;
         Configuration MainConf;
         Thread IRCConnection;
 
-        public IrcClient irc;
+        public IrcClient irc = new IrcClient()
+        {
+            SendDelay = 200,
+            AutoReconnect = true,
+            AutoRejoin = true,
+            AutoRejoinOnKick = false,
+            AutoRelogin = true,
+            AutoRetry = true,
+            AutoRetryDelay = 30,
+            CtcpVersion = Program.Version,
+            Encoding = Encoding.UTF8
+        };
 
         public IrcBot(Program p, IrcServerInfo c, Configuration m)
         {
             MainProgram = p;
             Conf = c;
             MainConf = m;
-
-            irc = new IrcClient();
-            irc.SendDelay = 200;
-            irc.AutoReconnect = true;
-            irc.AutoRejoin = true;
-            irc.AutoRejoinOnKick = false;
-            irc.AutoRelogin = true;
-            irc.AutoRetry = true;
-            irc.AutoRetryDelay = 30;
-            irc.CtcpVersion = Program.Version;
-            irc.Encoding = Encoding.UTF8;
-
-            irc.OnRawMessage += new IrcEventHandler(irc_OnRawMessage);
-            irc.OnJoin += new JoinEventHandler(irc_OnJoin);
-            irc.OnConnected += new EventHandler(irc_OnConnected);
-            irc.OnChannelAction += new ActionEventHandler(irc_OnChannelAction);
-            irc.OnChannelMessage += new IrcEventHandler(irc_OnChannelMessage);
+            irc.OnRawMessage += new IrcEventHandler(Irc_OnRawMessage);
+            irc.OnJoin += new JoinEventHandler(Irc_OnJoin);
+            irc.OnConnected += new EventHandler(Irc_OnConnected);
+            irc.OnChannelAction += new ActionEventHandler(Irc_OnChannelAction);
+            irc.OnChannelMessage += new IrcEventHandler(Irc_OnChannelMessage);
         }
 
         public void Dispose()
@@ -99,20 +118,21 @@ namespace BarkBot
             }
         }
 
+        public bool IsConnected() => irc != null && irc.IsConnected;
+
         List<string> SplitMessage(string message)
         {
-            List<string> ret = new List<string>();
-            string[] lines = Regex.Split(message, "\n+");
+            var ret = new List<string>();
+            var lines = Regex.Split(message, "\n+");
 
-            for (int l = 0; l < lines.Length; l++)
+            foreach (var line in lines)
             {
+                var words = line.Split(' ');
+                var outstr = string.Empty;
 
-                string[] words = lines[l].Split(' ');
-                string outstr = string.Empty;
-
-                for (int i = 0; i < words.Length; i++)
+                foreach (var word in words)
                 {
-                    outstr += words[i] + " ";
+                    outstr += $"{word} ";
                     if (outstr.Length > 380)
                     {
                         ret.Add(outstr.Trim());
@@ -126,177 +146,101 @@ namespace BarkBot
         }
 
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
-        {
-            ThreadPool.QueueUserWorkItem(sync =>
+            => ThreadPool.QueueUserWorkItem(sync =>
+            {
+                if (IsConnected() && Conf.Channels.TryGetValue(bridge.IrcChanID, out string chan))
                 {
-                    if (irc != null && irc.IsConnected)
-                    {
-                        string chan;
-                        if (Conf.Channels.TryGetValue(bridge.IrcChanID, out chan))
-                        {
-                            bool emote = msg.StartsWith("/me ");
-                            List<string> lines;
+                    bool emote = msg.StartsWith("/me ");
+                    SplitMessage(emote ? msg.Substring(3) : msg).ForEach(line =>
+                        irc.SendMessage(SendType.Action, chan, $"{from}{(emote ? "" : ":")} {line}"));
+                }
+            });
 
-                            if (emote)
-                                lines = SplitMessage(msg.Substring(3));
-                            else
-                                lines = SplitMessage(msg);
+        void Irc_OnConnected(object sender, EventArgs e)
+            => PrintMsg("IRC - " + Conf.ID, "Connected");
 
-                            foreach (string line in lines)
-                            {
-                                if (emote)
-                                    irc.SendMessage(SendType.Action, chan, string.Format("{0} {1}", from, line));
-                                else
-                                    irc.SendMessage(SendType.Message, chan, string.Format("{0}: {1}", from, line));
-                            }
-
-                        }
-                    }
-                });
-        }
-
-        void irc_OnConnected(object sender, EventArgs e)
-        {
-            PrintMsg("IRC - " + Conf.ID, string.Format("Connected"));
-        }
-
-        void irc_OnChannelMessage(object sender, IrcEventArgs e)
-        {
-            ThreadPool.QueueUserWorkItem(sync =>
-                {
-                    try
-                    {
-                        List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
-                        {
-                            return
-                                b.IrcServerConf == Conf &&
-                                Conf.Channels[b.IrcChanID] == e.Data.Channel;
-                        });
-
-                        foreach (BridgeInfo bridge in bridges)
-                        {
-                            if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
-                            {
-                                GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
-                                if (bot != null)
-                                {
-                                    string from = string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick);
-                                    string msg = e.Data.Message;
-
-                                    Match m = Regex.Match(msg, @"\(grid:(?<grid>[^)]*)\)\s*(?<first>\w+)\s*(?<last>\w+)[ :]*(?<msg>.*)");
-                                    if (m.Success)
-                                    {
-                                        from = string.Format("(grid:{0}) {1} {2}",
-                                            m.Groups["grid"],
-                                            m.Groups["first"],
-                                            m.Groups["last"]
-                                            );
-                                        msg = m.Groups["msg"].ToString();
-                                    }
-
-                                    bot.RelayMessage(bridge,
-                                        from,
-                                        msg);
-                                }
-                            }
-
-                            if (bridge.SlackServerConf != null)
-                            {
-                                SlackBot bot = MainProgram.SlackBots.Find((SlackBot b) => { return b.Conf == bridge.SlackServerConf; });
-                                if (bot != null)
-                                {
-                                    bot.RelayMessage(bridge,
-                                        string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                                        e.Data.Message);
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Failed relaying message: {0}", ex.Message);
-                    }
-                });
-
-        }
-
-        void irc_OnChannelAction(object sender, ActionEventArgs e)
-        {
-            ThreadPool.QueueUserWorkItem(sync =>
+        void Irc_OnChannelMessage(object sender, IrcEventArgs e)
+            => ThreadPool.QueueUserWorkItem(sync =>
             {
                 try
                 {
+                    List<BridgeInfo> bridges = MainConf.Bridges.FindAll(b =>
+                        b.IrcServerConf == Conf && Conf.Channels[b.IrcChanID] == e.Data.Channel.ToLower());
 
-                    List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
+                    string from = $"(irc:{e.Data.Channel}) {e.Data.Nick}";
+                    string botfrom = from;
+                    string msg = e.Data.Message;
+                    string botmsg = msg;
+
+                    Match m = Regex.Match(msg, @"\(grid:(?<grid>[^)]*)\)\s*(?<first>\w+)\s*(?<last>\w+)[ :]*(?<msg>.*)");
+                    if (m.Success)
                     {
-                        return
-                            b.IrcServerConf == Conf &&
-                            Conf.Channels[b.IrcChanID] == e.Data.Channel;
-                    });
-
-                    foreach (BridgeInfo bridge in bridges)
+                        botfrom = $"(grid:{m.Groups["grid"]}) {m.Groups["first"]} {m.Groups["last"]}";
+                        botmsg = $"{m.Groups["msg"]}";
+                    }
+                    foreach (var bridge in bridges)
                     {
                         if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
-                        {
-                            GridBot bot = MainProgram.GridBots.Find((GridBot b) => { return b.Conf == bridge.Bot; });
-                            if (bot != null)
-                            {
-                                string from = string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick);
-                                string msg = string.Format("/me {0}", e.ActionMessage);
-
-                                Match m = Regex.Match(e.ActionMessage, @"\(grid:(?<grid>[^)]*)\)\s*(?<first>\w+)\s*(?<last>\w+)[ :]*(?<msg>.*)");
-                                if (m.Success)
-                                {
-                                    from = string.Format("(grid:{0}) {1} {2}",
-                                        m.Groups["grid"],
-                                        m.Groups["first"],
-                                        m.Groups["last"]
-                                        );
-                                    msg = "/me " + m.Groups["msg"].ToString();
-                                }
-
-                                bot.RelayMessage(bridge,
-                                    from,
-                                    msg);
-                            }
-                        }
-
+                            MainProgram.GridBots.Find(b => b.Conf == bridge.Bot)?.RelayMessage(bridge, botfrom, botmsg);
                         if (bridge.SlackServerConf != null)
-                        {
-                            SlackBot bot = MainProgram.SlackBots.Find((SlackBot b) => { return b.Conf == bridge.SlackServerConf; });
-                            if (bot != null)
-                            {
-                                bot.RelayMessage(bridge,
-                                    string.Format("(irc:{0}) {1}", e.Data.Channel, e.Data.Nick),
-                                    string.Format("/me {0}", e.ActionMessage));
-                            }
-                        }
-
+                            MainProgram.SlackBots.Find(b => b.Conf == bridge.SlackServerConf)?.RelayMessage(bridge, from, msg);
+                        if (bridge.DiscordServerConf != null)
+                            MainProgram.DiscordBots.Find(b => b.Conf == bridge.DiscordServerConf)?.RelayMessage(bridge, from, msg);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Failed relaying message: {0}", ex.Message);
+                    Console.WriteLine($"Failed relaying message: {ex.Message}");
                 }
             });
 
-        }
+        void Irc_OnChannelAction(object sender, ActionEventArgs e)
+            => ThreadPool.QueueUserWorkItem(sync =>
+            {
+                try
+                {
+                    var bridges = MainConf.Bridges.FindAll(b =>
+                        b.IrcServerConf == Conf &&
+                        Conf.Channels[b.IrcChanID] == e.Data.Channel.ToLower());
 
-        void irc_OnJoin(object sender, JoinEventArgs e)
-        {
-            PrintMsg("IRC - " + Conf.ID, string.Format("{1} joined {0}", e.Channel, e.Who));
-        }
+                    string from = $"(irc:{e.Data.Channel}) {e.Data.Nick}";
+                    string botfrom = from;
+                    string msg = $"/me {e.ActionMessage}";
+                    string botmsg = msg;
 
-        void irc_OnRawMessage(object sender, IrcEventArgs e)
+                    Match m = Regex.Match(e.ActionMessage, @"\(grid:(?<grid>[^)]*)\)\s*(?<first>\w+)\s*(?<last>\w+)[ :]*(?<msg>.*)");
+                    if (m.Success)
+                    {
+                        botfrom = $"(grid:{m.Groups["grid"]}) {m.Groups["first"]} {m.Groups["last"]}";
+                        botmsg = $"/me {m.Groups["msg"]}";
+                    }
+                    foreach (var bridge in bridges)
+                    {
+                        if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+                            MainProgram.GridBots.Find(b => b.Conf == bridge.Bot)?.RelayMessage(bridge, from, msg);
+                        if (bridge.SlackServerConf != null)
+                            MainProgram.SlackBots.Find(b => b.Conf == bridge.SlackServerConf)?.RelayMessage(bridge, from, msg);
+                        if (bridge.DiscordServerConf != null)
+                            MainProgram.DiscordBots.Find(b => b.Conf == bridge.DiscordServerConf)?.RelayMessage(bridge, from, msg);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed relaying message: {ex.Message}");
+                }
+            });
+
+        void Irc_OnJoin(object sender, JoinEventArgs e)
+            => PrintMsg("IRC - " + Conf.ID, $"{e.Channel} joined {e.Who}");
+
+        void Irc_OnRawMessage(object sender, IrcEventArgs e)
         {
             if (e.Data.Type == ReceiveType.Unknown) return;
-            PrintMsg(e.Data.Nick, string.Format("({0}) {1}", e.Data.Type, e.Data.Message));
+            PrintMsg(e.Data.Nick, $"({e.Data.Type}) {e.Data.Message}");
         }
 
         void PrintMsg(string from, string msg)
-        {
-            Console.WriteLine("{0}: {1}", from, msg);
-        }
+            => Console.WriteLine($"{from}: {msg}");
 
         public void Connect()
         {
@@ -307,20 +251,22 @@ namespace BarkBot
                 IRCConnection = null;
             }
 
-            IRCConnection = new Thread(new ParameterizedThreadStart(IrcThread));
-            IRCConnection.Name = "IRC Thread";
-            IRCConnection.IsBackground = true;
+            IRCConnection = new Thread(new ParameterizedThreadStart(IrcThread))
+            {
+                Name = "IRC Thread",
+                IsBackground = true
+            };
             IRCConnection.Start(new object[] { Conf.ServerHost, Conf.ServerPort, Conf.Nick, Conf.Username, Conf.Channels.Values.ToArray() });
         }
 
         private void IrcThread(object param)
         {
-            object[] args = (object[])param;
-            string server = (string)args[0];
+            var args = (object[])param;
+            var server = $"{args[0]}";
             int port = (int)args[1];
-            string nick = (string)args[2];
-            string username = (string) args[3];
-            string[] chan = (string[])args[4];
+            var nick = $"{args[2]}";
+            var username = $"{args[3]}";
+            var chan = (string[])args[4];
 
             PrintMsg("IRC - " + Conf.ID, "Connecting...");
 
@@ -329,8 +275,8 @@ namespace BarkBot
                 irc.Connect(server, port);
                 PrintMsg("System", "Logging in...");
                 irc.Login(nick, "BarkBot System", 0, username);
-                for (int i = 0; i < chan.Length; i++)
-                    irc.RfcJoin(chan[i]);
+                foreach (var c in chan)
+                    irc.RfcJoin(c);
             }
             catch (Exception ex)
             {

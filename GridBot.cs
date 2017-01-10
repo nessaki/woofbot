@@ -34,13 +34,61 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using OpenMetaverse;
+using Nini.Config;
 
-namespace BarkBot
+namespace WoofBot
 {
+    public class BotInfo : AInfo
+    {
+        public string FirstName;
+        public string LastName;
+        public string Password;
+        public UUID SitOn;
+        internal ulong SimHandle;
+        public string Sim;
+        public Vector3 PosInSim;
+        public string LoginURI = "https://login.agni.lindenlab.com/cgi-bin/login.cgi";
+        public string GridName = "agni";
+        public string Name => $"{FirstName} {LastName}";
+
+        public static BotInfo Create(IniConfig conf, string id)
+        {
+            var b = new BotInfo()
+            {
+                ID = id,
+                FirstName = conf.Get("first_name"),
+                LastName = conf.Get("last_name"),
+                Password = conf.Get("password"),
+                SitOn = (UUID)conf.Get("sit_on"),
+                Sim = conf.Get("sim"),
+                GridName = conf.Contains("grid_name") ? conf.GetString("grid_name") : "agni"
+            };
+            if (string.IsNullOrEmpty(b.FirstName) || string.IsNullOrEmpty(b.LastName) || string.IsNullOrEmpty(b.Password))
+                throw new Exception("Incomplete bot information, first_name, last_name and password are required");
+            try
+            {
+                float pos_x = conf.GetFloat("pos_x");
+                float pos_y = conf.GetFloat("pos_y");
+                float pos_z = conf.GetFloat("pos_z");
+                if (!string.IsNullOrEmpty(b.Sim))
+                {
+                    b.PosInSim = new Vector3(pos_x, pos_y, pos_z);
+                }
+            }
+            catch { }
+            if (conf.Contains("login_uri"))
+            {
+                b.LoginURI = conf.Get("login_uri");
+            }
+            return b;
+        }
+    }
+
     public class GridBot : IDisposable, IRelay
     {
         public GridClient Client = new GridClient();
         public BotInfo Conf;
+        public AInfo GetConf() => Conf;
         public bool LoggingIn = false;
 
         Configuration MainConf;
@@ -49,7 +97,7 @@ namespace BarkBot
         System.Timers.Timer networkChecker;
         System.Timers.Timer positionChecker;
 
-        public bool Persistant
+        public bool Persistent
         {
             set
             {
@@ -65,29 +113,15 @@ namespace BarkBot
                     positionChecker.Enabled = true;
                 }
             }
-            get
-            {
-                return persist;
-            }
+            get => persist;
         }
 
-        public bool IsConnected
-        {
-            get { return Client != null && Client.Network.Connected; }
-        }
+        public bool IsConnected() => Client != null && Client.Network.Connected;
 
         public Vector3 Position
-        {
-            get
-            {
-                if (!IsConnected) return Vector3.Zero;
-
-                if (SittingOn != null && Client.Self.SittingOn == SittingOn.LocalID)
-                    return SittingOn.Position;
-                else
-                    return Client.Self.SimPosition;
-            }
-        }
+            => !IsConnected() ? Vector3.Zero :
+            (SittingOn != null && Client.Self.SittingOn == SittingOn.LocalID) ? SittingOn.Position
+            : Client.Self.SimPosition;
 
         private Primitive SittingOn;
 
@@ -100,61 +134,52 @@ namespace BarkBot
 
         public void Connect()
         {
-            System.Console.WriteLine("Logging in {0}...", Conf.Name);
+            Console.WriteLine($"Logging in {Conf.Name}...");
             if (networkChecker == null)
             {
-                networkChecker = new System.Timers.Timer(3*60*1000);
-                networkChecker.Enabled = false;
-                networkChecker.Elapsed += new System.Timers.ElapsedEventHandler(networkChecker_Elapsed);
+                networkChecker = new System.Timers.Timer(3 * 60 * 1000)
+                {
+                    Enabled = false
+                };
+                networkChecker.Elapsed += new System.Timers.ElapsedEventHandler(NetworkChecker_Elapsed);
             }
 
             if (positionChecker == null)
             {
-                positionChecker = new System.Timers.Timer(60*1000);
-                positionChecker.Enabled = false;
-                positionChecker.Elapsed += new System.Timers.ElapsedEventHandler(positionChecker_Elapsed);
+                positionChecker = new System.Timers.Timer(60 * 1000)
+                {
+                    Enabled = false
+                };
+                positionChecker.Elapsed += new System.Timers.ElapsedEventHandler(PositionChecker_Elapsed);
             }
 
             Login();
-            Persistant = true;
+            Persistent = true;
         }
 
-        public void SetBotInfo(BotInfo c)
-        {
-            Conf = c;
-        }
+        public void SetBotInfo(BotInfo c) => Conf = c;
 
         void StatusMsg(string msg)
         {
             StringBuilder sb = new StringBuilder();
 
             sb.AppendFormat("{0:s}]: ", DateTime.Now);
-            if (IsConnected)
+            if (IsConnected())
             {
-                sb.AppendFormat(" [{0} {1}]", Client.Self.FirstName, Client.Self.LastName);
+                sb.Append($" [{Client.Self.FirstName} {Client.Self.LastName}]");
             }
             sb.Append(msg);
-            System.Console.WriteLine(sb.ToString());
+            Console.WriteLine($"{sb}");
         }
 
-        void positionChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        void PositionChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (!IsConnected) return;
+            if (!IsConnected()) return;
 
             if (Conf.SimHandle != 0 && Client.Network.CurrentSim.Handle != Conf.SimHandle)
             {
-                Vector3 tpPos;
-                if (Conf.PosInSim == Vector3.Zero)
-                {
-                    tpPos = new Vector3(128, 128, 30);
-                }
-                else
-                {
-                    tpPos = Conf.PosInSim;
-                }
-
                 StatusMsg("Teleporting to " + Conf.Sim);
-                Client.Self.RequestTeleport(Conf.SimHandle, tpPos);
+                Client.Self.RequestTeleport(Conf.SimHandle, Conf.PosInSim == Vector3.Zero ? new Vector3(128, 128, 30) : Conf.PosInSim);
             }
             else if (Conf.SimHandle == Client.Network.CurrentSim.Handle)
             {
@@ -166,9 +191,9 @@ namespace BarkBot
             }
         }
 
-        void networkChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        void NetworkChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (!IsConnected)
+            if (!IsConnected())
             {
                 StatusMsg(Conf.Name + " not logged in, trying to log in.");
                 if (!LoggingIn)
@@ -275,7 +300,7 @@ namespace BarkBot
             }
             else if (e.Status == LoginStatus.Failed)
             {
-                StatusMsg(string.Format("Failed to login ({0}): {1}", e.FailReason, e.Message));
+                StatusMsg($"Failed to login ({e.FailReason}): {e.Message}");
             }
         }
 
@@ -285,7 +310,7 @@ namespace BarkBot
             ThreadPool.QueueUserWorkItem(sync =>
             {
                 Thread.Sleep(30 * 1000);
-                if (Persistant && !LoggingIn)
+                if (Persistent && !LoggingIn)
                 {
                     Login();
                 }
@@ -296,37 +321,32 @@ namespace BarkBot
         {
             if (e.IM.FromAgentName == Client.Self.Name) return;
             string name = e.IM.FromAgentName.EndsWith(" Resident") ? e.IM.FromAgentName.Substring(0, e.IM.FromAgentName.Length - 9) : e.IM.FromAgentName;
-            StatusMsg(e.IM.Dialog + "(" + name + "): " + e.IM.Message);
+            StatusMsg($"{e.IM.Dialog}({name}): {e.IM.Message}");
 
-            List<BridgeInfo> bridges = MainConf.Bridges.FindAll((BridgeInfo b) =>
-            {
-                return
-                    b.Bot == Conf &&
-                    b.GridGroup == e.IM.IMSessionID;
-            });
+            var bridges = MainConf.Bridges.FindAll(b => b.Bot == Conf && b.GridGroup == e.IM.IMSessionID);
 
+            if (e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
             foreach (var bridge in bridges)
             {
-                string from = string.Format("(grid:{0}) {1}", Conf.GridName, name);
+                if (bridge.GridGroup != e.IM.IMSessionID) continue;
+                string from = $"(grid:{Conf.GridName}) {name}";
 
-                IrcBot ircbot = MainProgram.IrcBots.Find((IrcBot ib) => { return ib.Conf == bridge.IrcServerConf; });
-                if (ircbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
-                {
-                    ircbot.RelayMessage(bridge, from, e.IM.Message);
-                }
-                SlackBot slackbot = MainProgram.SlackBots.Find((SlackBot ib) => { return ib.Conf == bridge.SlackServerConf; });
-                if (slackbot != null && bridge.GridGroup == e.IM.IMSessionID && e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
-                {
-                    slackbot.RelayMessage(bridge, from, e.IM.Message);
-                }
+                if (bridge.IrcServerConf != null)
+                    MainProgram.IrcBots.Find(ib => ib.Conf == bridge.IrcServerConf)?.RelayMessage(bridge, from, e.IM.Message);
+                if (bridge.SlackServerConf != null)
+                    MainProgram.SlackBots.Find(ib => ib.Conf == bridge.SlackServerConf)?.RelayMessage(bridge, from, e.IM.Message);
+                if (bridge.DiscordServerConf != null)
+                    MainProgram.DiscordBots.Find(ib => ib.Conf == bridge.DiscordServerConf)?.RelayMessage(bridge, from, e.IM.Message);
             }
 
             if (!MainConf.IsMaster(e.IM.FromAgentID))
             {
-                if (e.IM.Dialog.Equals(InstantMessageDialog.MessageFromAgent) || e.IM.Dialog.Equals(InstantMessageDialog.InventoryOffered))
+                if (!e.IM.GroupIM && e.IM.IMSessionID != e.IM.FromAgentID &&
+                    (e.IM.Dialog.Equals(InstantMessageDialog.MessageFromAgent) || e.IM.Dialog.Equals(InstantMessageDialog.InventoryOffered)))
                 {
                     ReplyIm(e.IM, "Sorry, I am a chat relay bot, you were probably meaning to talk to my masters in some group."
                         + "\nIf you are sending me a texture, might I suggest uploading it to somewhere such as imgur and posting the link in chat? I'll gladly let my masters know then!");
+                    Console.WriteLine($"WE JUST SENT THE MESSAGE TO {e.IM.IMSessionID}\n{e.IM.ToString()}");
                 }
                 return;
             }
@@ -336,11 +356,11 @@ namespace BarkBot
                 switch (e.IM.Dialog)
                 {
                     case InstantMessageDialog.RequestTeleport:
-                        StatusMsg(string.Format("Master {0} is sending teleport", e.IM.FromAgentName));
+                        StatusMsg($"Master {e.IM.FromAgentName} is sending teleport");
                         Client.Self.TeleportLureRespond(e.IM.FromAgentID, e.IM.IMSessionID, true);
                         break;
                     case InstantMessageDialog.RequestLure:
-                        StatusMsg(string.Format("Master {0} is requesting teleport", e.IM.FromAgentName));
+                        StatusMsg($"Master {e.IM.FromAgentName} is requesting teleport");
                         Client.Self.SendTeleportLure(e.IM.FromAgentID);
                         break;
                     case InstantMessageDialog.FriendshipOffered:
@@ -357,63 +377,56 @@ namespace BarkBot
         }
 
         object SyncJoinSession = new object();
-
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
         {
             if (!Client.Network.Connected) return;
 
             ThreadPool.QueueUserWorkItem(sync =>
+            {
+                UUID groupID = bridge.GridGroup;
+                bool success = true;
+                lock (SyncJoinSession)
                 {
-                    UUID groupID = bridge.GridGroup;
-                    bool success = true;
-                    lock (SyncJoinSession)
+                    if (!Client.Self.GroupChatSessions.ContainsKey(groupID))
                     {
-                        if (!Client.Self.GroupChatSessions.ContainsKey(groupID))
+                        var joined = new ManualResetEvent(false);
+                        EventHandler<GroupChatJoinedEventArgs> handler = (sender, e) =>
                         {
-                            ManualResetEvent joined = new ManualResetEvent(false);
-                            EventHandler<GroupChatJoinedEventArgs> handler = (object sender, GroupChatJoinedEventArgs e) =>
-                                {
-                                    if (e.SessionID == groupID)
-                                    {
-                                        joined.Set();
-                                        Logger.Log(string.Format("{0} group chat {1}", e.Success ? "Successfully joined" : "Failed to join", groupID), Helpers.LogLevel.Info);
-                                    }
-                                };
-                            success = false;
-                            Client.Self.GroupChatJoined += handler;
-                            Client.Self.RequestJoinGroupChat(groupID);
-                            success = joined.WaitOne(30 * 1000);
-                            Client.Self.GroupChatJoined -= handler;
-                        }
-                    }
-                    if (success)
-                    {
-                        if (msg.StartsWith("/me "))
-                            Client.Self.InstantMessageGroup(groupID, string.Format("{0}{1}", from, msg.Substring(3)));
-                        else
-                            Client.Self.InstantMessageGroup(groupID, string.Format("{0}: {1}", from, msg));
-                    }
-                    else
-                    {
-                        Logger.Log("Failed to start group chat session", Helpers.LogLevel.Warning);
+                            if (e.SessionID == groupID)
+                            {
+                                joined.Set();
+                                Logger.Log($"{(e.Success ? "Successfully joined" : "Failed to join")} group chat {groupID}", Helpers.LogLevel.Info);
+                            }
+                        };
+                        success = false;
+                        Client.Self.GroupChatJoined += handler;
+                        Client.Self.RequestJoinGroupChat(groupID);
+                        success = joined.WaitOne(30 * 1000);
+                        Client.Self.GroupChatJoined -= handler;
                     }
                 }
-            );
+                if (success)
+                {
+                    Client.Self.InstantMessageGroup(groupID, $"{from}{(msg.StartsWith("/me ") ? msg.Substring(3) : $": {msg}")}");
+                }
+                else
+                {
+                    Logger.Log("Failed to start group chat session", Helpers.LogLevel.Warning);
+                }
+            });
         }
 
         void ReplyIm(InstantMessage im, string msg)
-        {
-            Client.Self.InstantMessage(im.FromAgentID, msg, im.IMSessionID);
-        }
+            => Client.Self.InstantMessage(im.FromAgentID, msg, im.IMSessionID);
 
         void ProcessMessage(InstantMessage im)
         {
-            string[] args = im.Message.Trim().Split(' ');
+            var args = im.Message.Trim().Split(' ');
             if (args.Length < 1) return;
             switch (args[0])
             {
                 case "logout":
-                    Persistant = false;
+                    Persistent = false;
                     ReplyIm(im, "OK. Bye.");
                     Client.Network.Logout();
                     break;
@@ -447,30 +460,13 @@ namespace BarkBot
                     ReplyIm(im, "Activated group with uuid: " + groupID.ToString());
                     break;
                 case "sendteleport":
-                    UUID avatarID = UUID.Zero;
-                    try
-                    {
-                        UUID.TryParse(im.Message.Split(' ')[1].Trim(), out avatarID);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Failed to parse uuid in command sendteleport: {0}", ex.Message);
-                    }
-                    if (avatarID != UUID.Zero)
-
+                    if (UUID.TryParse(im.Message.Split(' ')[1].Trim(), out UUID avatarID) && avatarID != UUID.Zero)
                         Client.Self.SendTeleportLure(avatarID);
+                    else
+                        Console.WriteLine($"Failed to parse uuid or null in command sendteleport: {im.Message.Split(' ')[1].Trim()}");
                     break;
                 case "siton":
-                    UUID objectID = UUID.Zero;
-                    try
-                    {
-                        UUID.TryParse(im.Message.Split(' ')[1].Trim(), out objectID);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Failed to parse uuid in command siton: {0}", ex.Message);
-                    }
-                    if (objectID != UUID.Zero)
+                    if (UUID.TryParse(im.Message.Split(' ')[1].Trim(), out UUID objectID) && objectID != UUID.Zero)
                     {
                         if (SittingOn != null)
                         {
@@ -479,21 +475,22 @@ namespace BarkBot
                         Client.Self.RequestSit(objectID, Vector3.Zero);
                         Client.Self.Sit();
                     }
+                    else
+                        Console.WriteLine($"Failed to parse uuid or null in command siton: {im.Message.Split(' ')[1].Trim()}");
                     break;
                 case "help":
-                    var commandList = "Commands:";
-                    commandList += "\nhelp - display this message";
-                    commandList += "\nlogout - logs me out";
-                    commandList += "\nstartup - starts offline bots";
-                    commandList += "\nshutdown - logs all bots off";
-                    commandList += "\nstatus - gives the status of all bots";
-                    commandList += "\nappearance - rebake me";
-                    commandList += "\nrebake - rebake me forcefully";
-                    commandList += "\ngroupinfo - get info on all my groups";
-                    commandList += "\ngroupactivate <UUID> - sets my active group to UUID, if provided";
-                    commandList += "\nsendteleport <UUID> - Send a teleport request to avatar";
-                    commandList += "\nsiton <UUID> - Sit on object";
-                    ReplyIm(im, commandList);
+                    ReplyIm(im, "Commands:"
+                    + "\nhelp - display this message"
+                    + "\nlogout - logs me out"
+                    + "\nstartup - starts offline bots"
+                    + "\nshutdown - logs all bots off"
+                    + "\nstatus - gives the status of all bots"
+                    + "\nappearance - rebake me"
+                    + "\nrebake - rebake me forcefully"
+                    + "\ngroupinfo - get info on all my groups"
+                    + "\ngroupactivate <UUID> - sets my active group to UUID, if provided"
+                    + "\nsendteleport <UUID> - Send a teleport request to avatar"
+                    + "\nsiton <UUID> - Sit on object");
                     break;
             }
         }
@@ -503,14 +500,12 @@ namespace BarkBot
             ReplyIm(im, "Getting my groups...");
             ManualResetEvent finished = new ManualResetEvent(false);
 
-            EventHandler<CurrentGroupsEventArgs> handler = (object sender, CurrentGroupsEventArgs e) =>
-                {
-                    foreach (var group in e.Groups)
-                    {
-                        ReplyIm(im, string.Format("{0} - {1}", group.Key, group.Value.Name));
-                    }
-                    finished.Set();
-                };
+            EventHandler<CurrentGroupsEventArgs> handler = (sender, e) =>
+            {
+                foreach (var group in e.Groups)
+                    ReplyIm(im, $"{group.Key} - {group.Value.Name}");
+                finished.Set();
+            };
             Client.Groups.CurrentGroups += handler;
             Client.Groups.RequestCurrentGroups();
             finished.WaitOne(30 * 1000);
@@ -534,8 +529,7 @@ namespace BarkBot
                 Conf.SimHandle = MainConf.GetRegionHandle(Conf.Sim);
                 if (Conf.SimHandle == 0)
                 {
-                    GridRegion region;
-                    if (Client.Grid.GetGridRegion(Conf.Sim, GridLayerType.Objects, out region))
+                    if (Client.Grid.GetGridRegion(Conf.Sim, GridLayerType.Objects, out var region))
                     {
                         Conf.SimHandle = region.RegionHandle;
                         MainConf.SaveCachedRegionHandle(Conf.Sim, Conf.SimHandle);
@@ -562,8 +556,7 @@ namespace BarkBot
                 LoginParams param = Client.Network.DefaultLoginParams(Conf.FirstName, Conf.LastName, Conf.Password, "BarkBot", Program.Version);
                 param.URI = Conf.LoginURI;
                 param.Start = "last";
-                bool success = Client.Network.Login(param);
-                if (success)
+                if (Client.Network.Login(param))
                 {
                     UpdateSimHandle();
                 }
@@ -574,7 +567,7 @@ namespace BarkBot
 
         public void Logout()
         {
-            Persistant = false;
+            Persistent = false;
             Client.Network.Logout();
         }
     }

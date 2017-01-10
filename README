@@ -1,0 +1,6 @@
+Most of the dependencies have been moved to NuGet from the old Assemblies folder
+You're going to need Visual Studio 2017 to build this.
+Also git... but you knew that! :P
+
+git submodules init; git submodules update
+cd libremetaverse; ./runprebuild2015.bat
