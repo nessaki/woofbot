@@ -341,12 +341,12 @@ namespace WoofBot
 
             if (!MainConf.IsMaster(e.IM.FromAgentID))
             {
-                if (!e.IM.GroupIM && e.IM.IMSessionID != e.IM.FromAgentID &&
+                if (!e.IM.GroupIM && e.IM.IMSessionID != e.IM.ToAgentID &&
                     (e.IM.Dialog.Equals(InstantMessageDialog.MessageFromAgent) || e.IM.Dialog.Equals(InstantMessageDialog.InventoryOffered)))
                 {
                     ReplyIm(e.IM, "Sorry, I am a chat relay bot, you were probably meaning to talk to my masters in some group."
                         + "\nIf you are sending me a texture, might I suggest uploading it to somewhere such as imgur and posting the link in chat? I'll gladly let my masters know then!");
-                    Console.WriteLine($"WE JUST SENT THE MESSAGE TO {e.IM.IMSessionID}\n{e.IM.ToString()}");
+                    Console.WriteLine($"I just sent a response message to {e.IM.FromAgentName}:\n{e.IM}");
                 }
                 return;
             }
