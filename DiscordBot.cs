@@ -53,7 +53,23 @@ namespace WoofBot
                 AppName = name.Name,
                 AppVersion = name.Version.ToString(3),
                 AppUrl = "https://bitbucket.org/alchemyviewer/barkbot",
+                LogLevel = LogSeverity.Info
             });
+
+#if log_discord // This is sooo spammy right now.
+            Func<LogSeverity, Helpers.LogLevel> ToLogLevel = s =>
+            {
+                switch (s)
+                {
+                    case LogSeverity.Verbose: case LogSeverity.Debug: return Helpers.LogLevel.Debug;
+                    case LogSeverity.Error: return Helpers.LogLevel.Error;
+                    case LogSeverity.Warning: return Helpers.LogLevel.Warning;
+                    case LogSeverity.Info: return Helpers.LogLevel.Info;
+                }
+                return Helpers.LogLevel.None;
+            };
+            Client.Log.Message += (s, e) => Logger.Log($"[Discord:{Conf.ID}] {e.Message}", ToLogLevel(e.Severity));
+#endif
             Client.MessageReceived += Client_OnMessageReceived;
             Task.Run(ConnectAsync);
         }
