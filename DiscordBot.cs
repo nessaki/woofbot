@@ -47,7 +47,13 @@ namespace WoofBot
         }
         public void Connect()
         {
-            Client = new DiscordClient();
+            var name = System.Reflection.Assembly.GetExecutingAssembly().GetName();
+            Client = new DiscordClient(new DiscordConfigBuilder()
+            {
+                AppName = name.Name,
+                AppVersion = name.Version.ToString(3),
+                AppUrl = "https://bitbucket.org/alchemyviewer/barkbot",
+            });
             Client.MessageReceived += Client_OnMessageReceived;
             Task.Run(ConnectAsync);
         }
