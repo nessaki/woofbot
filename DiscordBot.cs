@@ -45,6 +45,7 @@ namespace WoofBot
                 }
             }
         }
+
         public void Connect()
         {
             var name = System.Reflection.Assembly.GetExecutingAssembly().GetName();
@@ -94,6 +95,9 @@ namespace WoofBot
                     if (text.Length > 2 && (begandend('_', text) // Discord's /me support does this.
                         || begandend('*', text)))
                         text = $"/me {text.Substring(1, text.Length-2)}";
+
+                    foreach (var m in msg.Message.Attachments)
+                        text += (text.Length == 0 ? "" : "\n") + m.Url;
 
                     foreach (BridgeInfo bridge in bridges)
                     {
