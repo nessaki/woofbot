@@ -72,56 +72,6 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Discord.Net, Version=0.9.6.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Discord.Net.0.9.6\lib\net45\Discord.Net.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
-      <HintPath>packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="Meebey.SmartIrc4net">
-      <HintPath>packages\smartirc4net-2015.0.5.9\lib\net40\Meebey.SmartIrc4net.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Nini">
-      <HintPath>packages\Trove.Nini.1.1.0.0\lib\net20\Nini.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Nito.AsyncEx, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.dll</HintPath>
-    </Reference>
-    <Reference Include="Nito.AsyncEx.Concurrent, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.Concurrent.dll</HintPath>
-    </Reference>
-    <Reference Include="Nito.AsyncEx.Enlightenment, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.Enlightenment.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenMetaverse, Version=0.9.2.3173, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>libremetaverse\bin\OpenMetaverse.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenMetaverse.StructuredData, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>libremetaverse\OpenMetaverse.StructuredData\obj\Debug\OpenMetaverse.StructuredData.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenMetaverseTypes, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>libremetaverse\OpenMetaverseTypes\obj\Debug\OpenMetaverseTypes.dll</HintPath>
-    </Reference>
-    <Reference Include="RestSharp, Version=105.2.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\RestSharp.105.2.3\lib\net45\RestSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="SlackAPI">
-      <HintPath>packages\SlackAPI.1.0.5.1\lib\net45\SlackAPI.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="StarkSoftProxy">
-      <HintPath>packages\smartirc4net-2015.0.5.9\lib\net40\StarkSoftProxy.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -134,13 +84,6 @@
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="WebSocket4Net, Version=0.14.1.0, Culture=neutral, PublicKeyToken=eb4e154b696bf72a, processorArchitecture=MSIL">
-      <HintPath>packages\WebSocket4Net.0.14.1\lib\net45\WebSocket4Net.dll</HintPath>
-    </Reference>
-    <Reference Include="zlib.net">
-      <HintPath>packages\zlib.net.1.0.4.0\lib\zlib.net.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration.cs" />
@@ -350,7 +293,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="OpenMetaverse.dll.config">
+    <Content Include="LibreMetaverse.dll.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -378,6 +321,20 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="libremetaverse\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj">
+      <Project>{89d7a3e5-0000-0000-0000-000000000000}</Project>
+      <Name>LibreMetaverse.StructuredData</Name>
+    </ProjectReference>
+    <ProjectReference Include="libremetaverse\LibreMetaverseTypes\LibreMetaverseTypes.csproj">
+      <Project>{b37b02ad-0000-0000-0000-000000000000}</Project>
+      <Name>LibreMetaverseTypes</Name>
+    </ProjectReference>
+    <ProjectReference Include="libremetaverse\LibreMetaverse\LibreMetaverse.csproj">
+      <Project>{27c70f3a-0000-0000-0000-000000000000}</Project>
+      <Name>LibreMetaverse</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
