@@ -79,7 +79,7 @@ namespace WoofBot
         {
             ulong channel_id = msg.Channel.Id;
             User sender = msg.User;
-            if (Conf.Channels.Values.Contains(channel_id) && sender.Id != Client.CurrentUser.Id)
+            if (!sender.IsBot && sender.Id != Client.CurrentUser.Id && Conf.Channels.Values.Contains(channel_id))
             {
                 string channel_name = msg.Channel.Name;
                 string user_name = string.IsNullOrEmpty(sender.Nickname) ? sender.Name : sender.Nickname;
