@@ -3,7 +3,9 @@
     "net452": {}
   },
   "runtimes": {
-    "win-x86": {}
+    "win-x86": {},
+    "win-x64": {},
+    "win": {}
   },
   "dependencies": {
     "Discord.Net": "0.9.6",
@@ -11,7 +13,7 @@
     "Newtonsoft.Json": "10.0.2",
     "Nito.AsyncEx": "4.0.1",
     "RestSharp": "105.2.3",
-    "SlackAPI": "1.0.6",
+    "SlackAPI": "1.0.5.93",
     "smartirc4net-2015": "0.5.9",
     "Trove.Nini": "1.1.0",
     "WebSocket4Net": "0.14.1",

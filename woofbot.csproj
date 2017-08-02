@@ -311,6 +311,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="jarilo.conf.example" />
     <None Include="libopenjpeg-dotnet-2-1.5.0-dotnet-1-arm.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -321,6 +322,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
+    <None Include="project.json" />
+    <None Include="README" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libremetaverse\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj">
