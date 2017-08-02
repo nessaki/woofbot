@@ -86,33 +86,17 @@ namespace WoofBot
                 var text = msg.Message.Text;
                 string from = $"(discord:{channel_name}) {user_name}";
                 Console.WriteLine($"{from}: {text}");
-                try
-                {
-                    var bridges = MainConf.Bridges.FindAll(b =>
-                        b.DiscordServerConf == Conf && Conf.Channels[b.DiscordChannelID] == channel_id);
+                Func<char, string, bool> begandend = (c, str) => c == str.First() && c == str.Last();
+                if (text.Length > 2 && (begandend('_', text) // Discord's /me support does this.
+                    || begandend('*', text)))
+                    text = $"/me {text.Substring(1, text.Length-2)}";
 
-                    Func<char, string, bool> begandend = (c, str) => c == str.First() && c == str.Last();
-                    if (text.Length > 2 && (begandend('_', text) // Discord's /me support does this.
-                        || begandend('*', text)))
-                        text = $"/me {text.Substring(1, text.Length-2)}";
+                foreach (var m in msg.Message.Attachments)
+                    text += (text.Length == 0 ? "" : "\n") + m.Url;
 
-                    foreach (var m in msg.Message.Attachments)
-                        text += (text.Length == 0 ? "" : "\n") + m.Url;
-
-                    foreach (BridgeInfo bridge in bridges)
-                    {
-                        if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
-                            MainProgram.GridBots.Find(b => b.Conf == bridge.Bot)?.RelayMessage(bridge, from, text);
-                        if (bridge.IrcServerConf != null)
-                            MainProgram.IrcBots.Find(b => b.Conf == bridge.IrcServerConf)?.RelayMessage(bridge, from, text);
-                        if (bridge.SlackServerConf != null)
-                            MainProgram.SlackBots.Find(b => b.Conf == bridge.SlackServerConf)?.RelayMessage(bridge, from, text);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed relaying message: {ex.Message}");
-                }
+                MainProgram.RelayMessage(Program.EBridgeType.DISCORD,
+                    b => b.DiscordServerConf == Conf && Conf.Channels[b.DiscordChannelID] == channel_id,
+                    from, text);
             }
         }
 

@@ -94,6 +94,38 @@ namespace WoofBot
             });
         }
 
+        public enum EBridgeType
+        {
+            GRID,
+            IRC,
+            SLACK,
+            DISCORD,
+        }
+
+        public void RelayMessage(EBridgeType type, Predicate<BridgeInfo> criteria, string from, string text, string botfrom = null, string bottext = null)
+        {
+            try
+            {
+                string gridspecificfrom = botfrom ?? from;
+                string gridspecifictext = bottext ?? text;
+                foreach (BridgeInfo bridge in Conf.Bridges.FindAll(criteria))
+                {
+                    if (type != EBridgeType.GRID && bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+                        GridBots.Find(b => b.Conf == bridge.Bot)?.RelayMessage(bridge, gridspecificfrom, gridspecifictext);
+                    if (type != EBridgeType.IRC && bridge.IrcServerConf != null)
+                        IrcBots.Find(b => b.Conf == bridge.IrcServerConf)?.RelayMessage(bridge, from, text);
+                    if (type != EBridgeType.SLACK && bridge.SlackServerConf != null)
+                        SlackBots.Find(b => b.Conf == bridge.SlackServerConf)?.RelayMessage(bridge, from, text);
+                    if (type != EBridgeType.DISCORD && bridge.DiscordServerConf != null)
+                        DiscordBots.Find(b => b.Conf == bridge.DiscordServerConf)?.RelayMessage(bridge, from, text);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed relaying message: {ex.Message}");
+            }
+        }
+
         void SetAppearance(bool rebake)
             => ThreadPool.QueueUserWorkItem(sync => GridBots.ForEach(bot =>
             {

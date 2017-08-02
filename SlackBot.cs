@@ -39,25 +39,9 @@ namespace WoofBot
                 string channel_name = Client.ChannelLookup[msg.channel].name;
                 string from = $"(slack:{channel_name}) {Client.UserLookup[msg.user].name}";
                 Console.WriteLine($"{from}: {msg.text}");
-                try
-                {
-                    var bridges = MainConf.Bridges.FindAll(b =>
-                        b.SlackServerConf == Conf && Conf.Channels[b.SlackChannelID] == channel_name.ToLower());
-
-                    foreach (BridgeInfo bridge in bridges)
-                    {
-                        if (bridge.Bot != null && bridge.GridGroup != UUID.Zero)
-                            MainProgram.GridBots.Find(b => b.Conf == bridge.Bot)?.RelayMessage(bridge, from, msg.text);
-                        if (bridge.IrcServerConf != null)
-                            MainProgram.IrcBots.Find(b => b.Conf == bridge.IrcServerConf)?.RelayMessage(bridge, from, msg.text);
-                        if (bridge.DiscordServerConf != null)
-                            MainProgram.DiscordBots.Find(ib => ib.Conf == bridge.DiscordServerConf)?.RelayMessage(bridge, from, msg.text);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed relaying message: {ex.Message}");
-                }
+                MainProgram.RelayMessage(Program.EBridgeType.SLACK,
+                    b => b.SlackServerConf == Conf && Conf.Channels[b.SlackChannelID] == channel_name.ToLower(),
+                    $from, msg.text);
             }
         }
 

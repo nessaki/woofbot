@@ -322,22 +322,10 @@ namespace WoofBot
             if (e.IM.FromAgentName == Client.Self.Name) return;
             string name = e.IM.FromAgentName.EndsWith(" Resident") ? e.IM.FromAgentName.Substring(0, e.IM.FromAgentName.Length - 9) : e.IM.FromAgentName;
             StatusMsg($"{e.IM.Dialog}({name}): {e.IM.Message}");
-
-            var bridges = MainConf.Bridges.FindAll(b => b.Bot == Conf && b.GridGroup == e.IM.IMSessionID);
-
             if (e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
-            foreach (var bridge in bridges)
-            {
-                if (bridge.GridGroup != e.IM.IMSessionID) continue;
-                string from = $"(grid:{Conf.GridName}) {name}";
-
-                if (bridge.IrcServerConf != null)
-                    MainProgram.IrcBots.Find(ib => ib.Conf == bridge.IrcServerConf)?.RelayMessage(bridge, from, e.IM.Message);
-                if (bridge.SlackServerConf != null)
-                    MainProgram.SlackBots.Find(ib => ib.Conf == bridge.SlackServerConf)?.RelayMessage(bridge, from, e.IM.Message);
-                if (bridge.DiscordServerConf != null)
-                    MainProgram.DiscordBots.Find(ib => ib.Conf == bridge.DiscordServerConf)?.RelayMessage(bridge, from, e.IM.Message);
-            }
+                MainProgram.RelayMessage(Program.EBridgeType.GRID,
+                    b => b.Bot == Conf && b.GridGroup == e.IM.IMSessionID,
+                    $"(grid:{Conf.GridName}) {name}", e.IM.Message);
 
             if (!MainConf.IsMaster(e.IM.FromAgentID))
             {
