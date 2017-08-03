@@ -8,7 +8,7 @@
     "win": {}
   },
   "dependencies": {
-    "Discord.Net": "0.9.6",
+    "Discord.Net": "1.0.1",
     "log4net": "2.0.8",
     "Newtonsoft.Json": "10.0.3",
     "Nito.AsyncEx": "4.0.1",
