@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if SLACK
+using System;
 using System.Linq;
 using SlackAPI;
 using OpenMetaverse;
@@ -61,3 +62,4 @@ namespace WoofBot
         }
     }
 }
+#endif

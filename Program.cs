@@ -45,7 +45,9 @@ namespace WoofBot
         public Configuration Conf;
         public List<GridBot> GridBots;
         public List<IrcBot> IrcBots;
+#if SLACK
         public List<SlackBot> SlackBots;
+#endif
         public List<DiscordBot> DiscordBots;
 
         public static string Version = "WoofBot 0.2";
@@ -71,7 +73,9 @@ namespace WoofBot
         public void CmdStartup()
         {
             StartRelay("Discord", DiscordBots);
+#if SLACK
             StartRelay("Slack", SlackBots);
+#endif
             StartRelay("IRC", IrcBots);
             StartRelay("Metaverse", GridBots);
         }
@@ -98,7 +102,9 @@ namespace WoofBot
         {
             GRID,
             IRC,
+#if SLACK
             SLACK,
+#endif
             DISCORD,
         }
 
@@ -114,8 +120,10 @@ namespace WoofBot
                         GridBots.Find(b => b.Conf == bridge.Bot)?.RelayMessage(bridge, gridspecificfrom, gridspecifictext);
                     if (type != EBridgeType.IRC && bridge.IrcServerConf != null)
                         IrcBots.Find(b => b.Conf == bridge.IrcServerConf)?.RelayMessage(bridge, from, text);
+#if SLACK
                     if (type != EBridgeType.SLACK && bridge.SlackServerConf != null)
                         SlackBots.Find(b => b.Conf == bridge.SlackServerConf)?.RelayMessage(bridge, from, text);
+#endif
                     if (type != EBridgeType.DISCORD && bridge.DiscordServerConf != null)
                         DiscordBots.Find(b => b.Conf == bridge.DiscordServerConf)?.RelayMessage(bridge, from, text);
                 }
@@ -213,8 +221,10 @@ namespace WoofBot
             IrcBots = new List<IrcBot>();
             Conf.IrcServers.ForEach(b => IrcBots.Add(new IrcBot(this, b, Conf)));
 
+#if SLACK
             SlackBots = new List<SlackBot>();
             Conf.SlackServers.ForEach(b => SlackBots.Add(new SlackBot(this, b, Conf)));
+#endif
 
             DiscordBots = new List<DiscordBot>();
             Conf.DiscordServers.ForEach(b => DiscordBots.Add(new DiscordBot(this, b, Conf)));

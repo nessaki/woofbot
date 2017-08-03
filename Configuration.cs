@@ -67,8 +67,10 @@ namespace WoofBot
         public UUID GridGroup;
         public IrcServerInfo IrcServerConf;
         public string IrcChanID;
+#if SLACK
         public SlackServerInfo SlackServerConf;
         public string SlackChannelID;
+#endif
         public DiscordServerInfo DiscordServerConf;
         public string DiscordChannelID;
 
@@ -80,7 +82,9 @@ namespace WoofBot
                 ID = id,
                 IrcChanID = conf.GetString("ircchan"),
                 GridGroup = groupID,
+#if SLACK
                 SlackChannelID = conf.GetString("slackchannel"),
+#endif
                 DiscordChannelID = conf.GetString("discordchannel")
             };
             return bi;
@@ -93,7 +97,9 @@ namespace WoofBot
         public Dictionary<UUID, string> Masters = new Dictionary<UUID, string>();
         public List<BotInfo> Bots = new List<BotInfo>();
         public List<IrcServerInfo> IrcServers = new List<IrcServerInfo>();
+#if SLACK
         public List<SlackServerInfo> SlackServers = new List<SlackServerInfo>();
+#endif
         public List<DiscordServerInfo> DiscordServers = new List<DiscordServerInfo>();
         public List<BridgeInfo> Bridges = new List<BridgeInfo>();
 
@@ -146,10 +152,12 @@ namespace WoofBot
                         IrcServers.Add(IrcServerInfo.Create(conf, id));
                     else if (type == "ircchan")
                         IrcServerInfo.AddChannel(conf, id, conf.GetString("irc_server"), ref IrcServers);
+#if SLACK
                     else if (type == "slack")
                         SlackServers.Add(new SlackServerInfo(){ID = id, APIKEY = conf.GetString("slack_key")});
                     else if (type == "slackchannel")
                         SlackServerInfo.AddChannel(conf, id, conf.GetString("slack_server"), ref SlackServers);
+#endif
                     else if (type == "discord")
                         DiscordServers.Add(new DiscordServerInfo()
                         {
@@ -164,7 +172,9 @@ namespace WoofBot
                         var bi = BridgeInfo.Create(conf, id);
                         bi.IrcServerConf = IrcServers.Find(s => s.Channels.ContainsKey(bi.IrcChanID));
                         bi.Bot = Bots.Find(b => b.ID == conf.GetString("bot"));
+#if SLACK
                         bi.SlackServerConf = SlackServers.Find(slack => slack.Channels.ContainsKey(bi.SlackChannelID));
+#endif
                         bi.DiscordServerConf = DiscordServers.Find(d => d.Channels.ContainsKey(bi.DiscordChannelID));
                         Bridges.Add(bi);
                     }
