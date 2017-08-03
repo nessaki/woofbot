@@ -10,7 +10,7 @@
   "dependencies": {
     "Discord.Net": "0.9.6",
     "log4net": "2.0.8",
-    "Newtonsoft.Json": "10.0.2",
+    "Newtonsoft.Json": "10.0.3",
     "Nito.AsyncEx": "4.0.1",
     "RestSharp": "105.2.3",
     "SlackAPI": "1.0.5.93",
