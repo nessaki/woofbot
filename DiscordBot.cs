@@ -89,7 +89,7 @@ namespace WoofBot
 
         private void Relay(SocketMessage msg)
         {
-            var text = msg.Content;
+            var text = msg is SocketUserMessage && msg.Tags.Any() ? (msg as SocketUserMessage).Resolve() : msg.Content; // Resolve 'em if you got 'em.
             string from = $"(discord:{msg.Channel.Name}) {msg.Author.Username}";
             Console.WriteLine($"{from}: {text}");
             Func<char, string, bool> begandend = (c, str) => c == str.First() && c == str.Last();
