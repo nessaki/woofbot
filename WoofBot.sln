@@ -1,15 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26020.0
+VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "woofbot", "woofbot.csproj", "{AC3DFF0E-E754-4A80-9CD7-2C104A30F4C2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse", "libremetaverse\LibreMetaverse\LibreMetaverse.csproj", "{27C70F3A-0000-0000-0000-000000000000}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverseTypes", "libremetaverse\LibreMetaverseTypes\LibreMetaverseTypes.csproj", "{B37B02AD-0000-0000-0000-000000000000}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.StructuredData", "libremetaverse\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj", "{89D7A3E5-0000-0000-0000-000000000000}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Types", "libremetaverse\LibreMetaverseTypes\LibreMetaverse.Types.csproj", "{B37B02AD-0000-0000-0000-000000000000}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,14 +35,6 @@ Global
 		{27C70F3A-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{27C70F3A-0000-0000-0000-000000000000}.Release|x86.ActiveCfg = Release|Any CPU
 		{27C70F3A-0000-0000-0000-000000000000}.Release|x86.Build.0 = Release|Any CPU
-		{B37B02AD-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B37B02AD-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B37B02AD-0000-0000-0000-000000000000}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{B37B02AD-0000-0000-0000-000000000000}.Debug|x86.Build.0 = Debug|Any CPU
-		{B37B02AD-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B37B02AD-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B37B02AD-0000-0000-0000-000000000000}.Release|x86.ActiveCfg = Release|Any CPU
-		{B37B02AD-0000-0000-0000-000000000000}.Release|x86.Build.0 = Release|Any CPU
 		{89D7A3E5-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{89D7A3E5-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{89D7A3E5-0000-0000-0000-000000000000}.Debug|x86.ActiveCfg = Debug|Any CPU
@@ -51,6 +43,14 @@ Global
 		{89D7A3E5-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{89D7A3E5-0000-0000-0000-000000000000}.Release|x86.ActiveCfg = Release|Any CPU
 		{89D7A3E5-0000-0000-0000-000000000000}.Release|x86.Build.0 = Release|Any CPU
+		{B37B02AD-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B37B02AD-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B37B02AD-0000-0000-0000-000000000000}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B37B02AD-0000-0000-0000-000000000000}.Debug|x86.Build.0 = Debug|Any CPU
+		{B37B02AD-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B37B02AD-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B37B02AD-0000-0000-0000-000000000000}.Release|x86.ActiveCfg = Release|Any CPU
+		{B37B02AD-0000-0000-0000-000000000000}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

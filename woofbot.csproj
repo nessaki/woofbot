@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>WoofBot</RootNamespace>
     <AssemblyName>woofbot</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
@@ -330,9 +330,9 @@
       <Project>{89d7a3e5-0000-0000-0000-000000000000}</Project>
       <Name>LibreMetaverse.StructuredData</Name>
     </ProjectReference>
-    <ProjectReference Include="libremetaverse\LibreMetaverseTypes\LibreMetaverseTypes.csproj">
+    <ProjectReference Include="libremetaverse\LibreMetaverseTypes\LibreMetaverse.Types.csproj">
       <Project>{b37b02ad-0000-0000-0000-000000000000}</Project>
-      <Name>LibreMetaverseTypes</Name>
+      <Name>LibreMetaverse.Types</Name>
     </ProjectReference>
     <ProjectReference Include="libremetaverse\LibreMetaverse\LibreMetaverse.csproj">
       <Project>{27c70f3a-0000-0000-0000-000000000000}</Project>

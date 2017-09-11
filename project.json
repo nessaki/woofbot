@@ -1,6 +1,6 @@
 ﻿{
   "frameworks": {
-    "net452": {}
+    "net462": {}
   },
   "runtimes": {
     "win-x86": {},
