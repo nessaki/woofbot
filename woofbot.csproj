@@ -325,20 +325,6 @@
     <None Include="project.json" />
     <None Include="README" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="libremetaverse\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj">
-      <Project>{89d7a3e5-0000-0000-0000-000000000000}</Project>
-      <Name>LibreMetaverse.StructuredData</Name>
-    </ProjectReference>
-    <ProjectReference Include="libremetaverse\LibreMetaverseTypes\LibreMetaverse.Types.csproj">
-      <Project>{b37b02ad-0000-0000-0000-000000000000}</Project>
-      <Name>LibreMetaverse.Types</Name>
-    </ProjectReference>
-    <ProjectReference Include="libremetaverse\LibreMetaverse\LibreMetaverse.csproj">
-      <Project>{27c70f3a-0000-0000-0000-000000000000}</Project>
-      <Name>LibreMetaverse</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

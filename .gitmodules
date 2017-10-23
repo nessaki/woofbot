@@ -1,6 +1,3 @@
 [submodule "nini"]
 	path = nini
 	url = https://github.com/rwhitworth/nini.git
-[submodule "libremetaverse"]
-	path = libremetaverse
-	url = https://bitbucket.org/cinderblocks/libremetaverse.git

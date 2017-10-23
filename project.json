@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "Discord.Net": "1.0.2",
+    "LibreMetaverse": "1.2.1.151",
     "log4net": "2.0.8",
     "Newtonsoft.Json": "10.0.3",
     "Nito.AsyncEx": "4.0.1",
