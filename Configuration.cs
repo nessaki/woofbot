@@ -76,7 +76,11 @@ namespace WoofBot
 
         public static BridgeInfo Create(IniConfig conf, string id)
         {
-            UUID.TryParse(conf.GetString("grid_group"), out var groupID);
+            UUID groupID = UUID.Zero;
+            if (conf.Contains("grid_group"))
+                UUID.TryParse(conf.GetString("grid_group"), out groupID);
+            else groupID = UUID.Zero;
+
             var bi = new BridgeInfo()
             {
                 ID = id,
@@ -171,7 +175,7 @@ namespace WoofBot
                     {
                         var bi = BridgeInfo.Create(conf, id);
                         bi.IrcServerConf = IrcServers.Find(s => s.Channels.ContainsKey(bi.IrcChanID));
-                        bi.Bot = Bots.Find(b => b.ID == conf.GetString("bot"));
+                        if (conf.Contains("bot")) bi.Bot = Bots.Find(b => b.ID == conf.GetString("bot"));
 #if SLACK
                         bi.SlackServerConf = SlackServers.Find(slack => slack.Channels.ContainsKey(bi.SlackChannelID));
 #endif
