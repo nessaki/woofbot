@@ -372,11 +372,31 @@ namespace WoofBot
         {
             if (e.FromName == Client.Self.Name) return;
             string name = Strip(e.FromName);
-            StatusMsg($"{e.Type}({name}): {e.Message}");
+            string begin = string.Empty;
+            switch (e.Type)
+            {
+                case ChatType.StartTyping:
+                case ChatType.StopTyping:
+                    return;
+                case ChatType.RegionSayTo:
+                case ChatType.RegionSay:
+                    begin = "[RegionWide]";
+                    break;
+                case ChatType.Whisper:
+                    begin = "/me whispers";
+                    break;
+                case ChatType.Shout:
+                    begin = "/me shouts";
+                    break;
+                default:
+                    begin = ":";
+                    break;
+            }
+            StatusMsg($"{e.Type}({name}){begin} {e.Message}");
             if (e.SourceID != UUID.Zero && e.SourceID != Client.Self.AgentID)
                 MainProgram.RelayMessage(Program.EBridgeType.GRID,
                     b => b.Bot == Conf && b.GridGroup == null,
-                    $"(grid:{Conf.GridName}) {name}", e.Message);
+                    $"(grid:{Conf.GridName}) {name}", $"{begin} {e.Message}");
         }
 
         object SyncJoinSession = new object();
@@ -386,12 +406,21 @@ namespace WoofBot
 
             ThreadPool.QueueUserWorkItem(sync =>
             {
-                msg = $"{from}{(msg.StartsWith("/me ") ? msg.Substring(3) : $": {msg}")}";
+                Action formatmsg = () => msg = $"{from}{(msg.StartsWith("/me ") ? msg.Substring(3) : $": {msg}")}";
                 if (bridge.GridGroup == null) // null is local
                 {
-                    Client.Self.Chat(msg, 0, ChatType.Normal);
+                    var type = ChatType.Normal;
+                    string cmd;
+                    if (msg.StartsWith(cmd = "!shout "))
+                        type = ChatType.Shout;
+                    else if (msg.StartsWith(cmd = "!whisper "))
+                        type = ChatType.Whisper;
+                    if (type != ChatType.Normal) msg = msg.Remove(cmd.Length);
+                    formatmsg();
+                    Client.Self.Chat(msg, 0, type);
                     return;
                 }
+                formatmsg();
 
                 UUID groupID = (UUID)bridge.GridGroup;
                 bool success = true;
