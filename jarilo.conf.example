@@ -46,5 +46,5 @@ channel = #SingularitySL
 ircchan = SingularitySL ;[ircchan:<This>]
 ;slackchannel = relay ;[slackchannel:<This>]
 ;discordchannel = discordrelay ;[discordchannel:<This>]
-grid_group = 4fa278be-b621-9447-0958-85af4b01cdab ;ID of your group on the grid
+grid_group = 4fa278be-b621-9447-0958-85af4b01cdab ;ID of your group on the grid or "local" if you want a local chat bridge
 bot = MyBot ;[bot:<This>]

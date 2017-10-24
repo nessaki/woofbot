@@ -64,7 +64,7 @@ namespace WoofBot
     public class BridgeInfo : AInfo
     {
         public BotInfo Bot;
-        public UUID GridGroup;
+        public UUID? GridGroup;
         public IrcServerInfo IrcServerConf;
         public string IrcChanID;
 #if SLACK
@@ -76,9 +76,13 @@ namespace WoofBot
 
         public static BridgeInfo Create(IniConfig conf, string id)
         {
-            UUID groupID = UUID.Zero;
+            UUID? groupID = null;
             if (conf.Contains("grid_group"))
-                UUID.TryParse(conf.GetString("grid_group"), out groupID);
+            {
+                var str = conf.GetString("grid_group");
+                if (!str.Equals("local"))
+                    try { groupID = UUID.Parse(str); } catch { }
+            }
             else groupID = UUID.Zero;
 
             var bi = new BridgeInfo()

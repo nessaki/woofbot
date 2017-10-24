@@ -238,6 +238,7 @@ namespace WoofBot
             Client.Network.Disconnected += new EventHandler<DisconnectedEventArgs>(Network_Disconnected);
             Client.Network.LoginProgress += new EventHandler<LoginProgressEventArgs>(Network_LoginProgress);
             Client.Self.IM += new EventHandler<InstantMessageEventArgs>(Self_IM);
+            Client.Self.ChatFromSimulator += new EventHandler<ChatEventArgs>(LocalChat);
             Client.Objects.ObjectUpdate += new EventHandler<PrimEventArgs>(Objects_ObjectUpdate);
         }
 
@@ -249,6 +250,7 @@ namespace WoofBot
                 Client.Network.Disconnected -= new EventHandler<DisconnectedEventArgs>(Network_Disconnected);
                 Client.Network.LoginProgress -= new EventHandler<LoginProgressEventArgs>(Network_LoginProgress);
                 Client.Self.IM -= new EventHandler<InstantMessageEventArgs>(Self_IM);
+                Client.Self.ChatFromSimulator -= new EventHandler<ChatEventArgs>(LocalChat);
                 Client.Objects.ObjectUpdate -= new EventHandler<PrimEventArgs>(Objects_ObjectUpdate);
 
                 SittingOn = null;
@@ -317,14 +319,16 @@ namespace WoofBot
             });
         }
 
+        string Strip(string name) => name.EndsWith(" Resident") ? name.Substring(0, name.Length - 9) : name;
+
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
-            if (e.IM.FromAgentName == Client.Self.Name) return;
-            string name = e.IM.FromAgentName.EndsWith(" Resident") ? e.IM.FromAgentName.Substring(0, e.IM.FromAgentName.Length - 9) : e.IM.FromAgentName;
+            if ( e.IM.FromAgentName == Client.Self.Name) return;
+            string name = Strip(e.IM.FromAgentName);
             StatusMsg($"{e.IM.Dialog}({name}): {e.IM.Message}");
             if (e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
                 MainProgram.RelayMessage(Program.EBridgeType.GRID,
-                    b => b.Bot == Conf && b.GridGroup == e.IM.IMSessionID,
+                    b => b.Bot == Conf && b?.GridGroup == e.IM.IMSessionID,
                     $"(grid:{Conf.GridName}) {name}", e.IM.Message);
 
             if (!MainConf.IsMaster(e.IM.FromAgentID))
@@ -364,6 +368,17 @@ namespace WoofBot
             });
         }
 
+        private void LocalChat(object sender, ChatEventArgs e)
+        {
+            if (e.FromName == Client.Self.Name) return;
+            string name = Strip(e.FromName);
+            StatusMsg($"{e.Type}({name}): {e.Message}");
+            if (e.SourceID != UUID.Zero && e.SourceID != Client.Self.AgentID)
+                MainProgram.RelayMessage(Program.EBridgeType.GRID,
+                    b => b.Bot == Conf && b.GridGroup == null,
+                    $"(grid:{Conf.GridName}) {name}", e.Message);
+        }
+
         object SyncJoinSession = new object();
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
         {
@@ -371,7 +386,14 @@ namespace WoofBot
 
             ThreadPool.QueueUserWorkItem(sync =>
             {
-                UUID groupID = bridge.GridGroup;
+                msg = $"{from}{(msg.StartsWith("/me ") ? msg.Substring(3) : $": {msg}")}";
+                if (bridge.GridGroup == null) // null is local
+                {
+                    Client.Self.Chat(msg, 0, ChatType.Normal);
+                    return;
+                }
+
+                UUID groupID = (UUID)bridge.GridGroup;
                 bool success = true;
                 lock (SyncJoinSession)
                 {
@@ -395,7 +417,7 @@ namespace WoofBot
                 }
                 if (success)
                 {
-                    Client.Self.InstantMessageGroup(groupID, $"{from}{(msg.StartsWith("/me ") ? msg.Substring(3) : $": {msg}")}");
+                    Client.Self.InstantMessageGroup(groupID, msg);
                 }
                 else
                 {

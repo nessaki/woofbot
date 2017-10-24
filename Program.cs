@@ -116,7 +116,7 @@ namespace WoofBot
                 string gridspecifictext = bottext ?? text;
                 foreach (BridgeInfo bridge in Conf.Bridges.FindAll(criteria))
                 {
-                    if (type != EBridgeType.GRID && bridge.Bot != null && bridge.GridGroup != UUID.Zero)
+                    if (type != EBridgeType.GRID && bridge.Bot != null && (bridge.GridGroup == null || bridge.GridGroup != UUID.Zero))
                         GridBots.Find(b => b.Conf == bridge.Bot)?.RelayMessage(bridge, gridspecificfrom, gridspecifictext);
                     if (type != EBridgeType.IRC && bridge.IrcServerConf != null)
                         IrcBots.Find(b => b.Conf == bridge.IrcServerConf)?.RelayMessage(bridge, from, text);
