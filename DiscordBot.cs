@@ -50,6 +50,7 @@ namespace WoofBot
 
         async Task ConnectAsync()
         {
+            Client.Log += Log;
             await Client.LoginAsync(TokenType.Bot, Conf.token);
             await Client.StartAsync();
 
