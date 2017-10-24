@@ -11,13 +11,8 @@
     "Discord.Net.WebSocket": "1.0.2",
     "LibreMetaverse": "1.2.1.151",
     "log4net": "2.0.8",
-    "Newtonsoft.Json": "10.0.3",
-    "Nito.AsyncEx": "4.0.1",
-    "RestSharp": "105.2.3",
     "SlackAPI": "1.0.5.93",
     "smartirc4net-2015": "0.5.9",
-    "Trove.Nini": "1.1.0",
-    "WebSocket4Net": "0.15.0",
-    "zlib.net": "1.0.4"
+    "Trove.Nini": "1.1.0"
   }
 }
