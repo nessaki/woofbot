@@ -9,9 +9,9 @@
   },
   "dependencies": {
     "Discord.Net.WebSocket": "1.0.2",
-    "LibreMetaverse": "1.2.1.151",
+    "LibreMetaverse": "1.2.5.188",
     "log4net": "2.0.8",
-    "SlackAPI": "1.0.5.93",
+    "SlackAPI": "1.0.7",
     "smartirc4net-2015": "0.5.9",
     "Trove.Nini": "1.1.0"
   }
