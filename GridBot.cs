@@ -493,19 +493,19 @@ namespace WoofBot
                     break;
                 case "groupactivate":
                     UUID groupID = UUID.Zero;
-                    try { UUID.TryParse(im.Message.Split(' ')[1].Trim(), out groupID); }
+                    try { UUID.TryParse(args[1].Trim(), out groupID); }
                     catch { }
                     Client.Groups.ActivateGroup(groupID);
                     ReplyIm(im, "Activated group with uuid: " + groupID.ToString());
                     break;
                 case "sendteleport":
-                    if (UUID.TryParse(im.Message.Split(' ')[1].Trim(), out UUID avatarID) && avatarID != UUID.Zero)
+                    if (UUID.TryParse(args[1].Trim(), out UUID avatarID) && avatarID != UUID.Zero)
                         Client.Self.SendTeleportLure(avatarID);
                     else
-                        Console.WriteLine($"Failed to parse uuid or null in command sendteleport: {im.Message.Split(' ')[1].Trim()}");
+                        Console.WriteLine($"Failed to parse uuid or null in command sendteleport: {args[1].Trim()}");
                     break;
                 case "siton":
-                    if (UUID.TryParse(im.Message.Split(' ')[1].Trim(), out UUID objectID) && objectID != UUID.Zero)
+                    if (UUID.TryParse(args[1].Trim(), out UUID objectID) && objectID != UUID.Zero)
                     {
                         if (SittingOn != null)
                         {
@@ -515,7 +515,7 @@ namespace WoofBot
                         Client.Self.Sit();
                     }
                     else
-                        Console.WriteLine($"Failed to parse uuid or null in command siton: {im.Message.Split(' ')[1].Trim()}");
+                        Console.WriteLine($"Failed to parse uuid or null in command siton: {args[1].Trim()}");
                     break;
                 case "help":
                     ReplyIm(im, "Commands:"
