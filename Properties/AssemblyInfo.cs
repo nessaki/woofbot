@@ -39,7 +39,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Alchemy Development Group")]
 [assembly: AssemblyProduct("WoofBot")]
-[assembly: AssemblyCopyright("Copyright © 2014 Alchemy Development Group | Copyright © 2010 Jarilo Development Team")]
+[assembly: AssemblyCopyright("Copyright © 2014-2019 Alchemy Development Group | Copyright © 2010 Jarilo Development Team")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -61,5 +61,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.2.1.0")]
 [assembly: AssemblyFileVersion("0.0.0.0")]
