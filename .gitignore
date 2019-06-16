@@ -1,6 +1,8 @@
 bin/
 obj/
+.vs/
 *.suo
+*.swp
 *.user
 
 project.lock.json
