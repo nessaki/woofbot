@@ -8,10 +8,10 @@
     "win": {}
   },
   "dependencies": {
-    "Discord.Net.WebSocket": "2.0.1",
-    "LibreMetaverse": "1.2.5.188",
+    "Discord.Net.WebSocket": "2.1.1",
+    "LibreMetaverse": "1.2.7.205",
     "log4net": "2.0.8",
-    "SlackAPI": "1.0.7",
+    "SlackAPI": "1.1.1",
     "smartirc4net-2015": "0.5.9",
     "Trove.Nini": "1.1.0"
   }
