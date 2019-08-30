@@ -53,14 +53,12 @@ namespace WoofBot
         Program MainProgram;
         public DiscordServerInfo Conf;
         public AInfo GetConf() => Conf;
-        Configuration MainConf;
         DiscordSocketClient Client;
 
-        public DiscordBot(Program p, DiscordServerInfo c, Configuration m)
+        public DiscordBot(Program p, DiscordServerInfo c)
         {
             MainProgram = p;
             Conf = c;
-            MainConf = m;
         }
 
         private Task Log(LogMessage msg)
@@ -142,7 +140,7 @@ namespace WoofBot
                 from, text);
         }
 
-        public bool IsConnected() => Client?.LoginState == LoginState.LoggedIn;
+        public bool IsConnected() => Client?.LoginState == LoginState.LoggedIn && Client?.ConnectionState == ConnectionState.Connected;
 
         async Task RelayMessageAsync(BridgeInfo bridge, SocketTextChannel c, string msg)
         {

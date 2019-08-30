@@ -209,7 +209,10 @@ namespace WoofBot
             Logger.Log(Version + " starting up", Helpers.LogLevel.Info);
             Console.WriteLine(Version + " starting up");
 
-            try { Conf = new Configuration(@"./"); }
+            var confAutoLifeTime = Environment.GetEnvironmentVariable("WOOFBOT_AUTO_LIFETIME") ?? "false";
+            var confDirectory = Environment.GetEnvironmentVariable("WOOFBOT_CONFIG_PATH") ?? "./";
+
+            try { Conf = new Configuration(confDirectory); }
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to read the configuration file: {ex.Message}");
@@ -230,23 +233,44 @@ namespace WoofBot
 #endif
 
             DiscordBots = new List<DiscordBot>();
-            Conf.DiscordServers.ForEach(b => DiscordBots.Add(new DiscordBot(this, b, Conf)));
+            Conf.DiscordServers.ForEach(b => DiscordBots.Add(new DiscordBot(this, b)));
 
-            if (args.Length > 0 && (cmd = args[0]) == "startup")
-                CmdStartup();
-
-            while (cmd != "quit")
+            if (!confAutoLifeTime.Equals("true", StringComparison.OrdinalIgnoreCase)
+                && !confAutoLifeTime.Equals("yes", StringComparison.OrdinalIgnoreCase))
             {
-                DisplayPrompt();
-                string inputLine = Console.ReadLine();
-                if (inputLine == null)
+                if (args.Length > 0 && (cmd = args[0]) == "startup")
+                    CmdStartup();
+
+                try
                 {
-                    cmd = "quit";
+                    while (cmd != "quit")
+                    {
+                        DisplayPrompt();
+                        string inputLine = Console.ReadLine();
+                        if (inputLine == null)
+                        {
+                            cmd = "quit";
+                        }
+                        else
+                        {
+                            ProcessCommand(inputLine);
+                        }
+                    }
                 }
-                else
+                catch
                 {
-                    ProcessCommand(inputLine);
+                    // do nothing and fallthrough
                 }
+            }
+            else // full lifetime management via normal daemon process usage.
+            {
+                var exitEvent = new ManualResetEvent(false);
+
+                Console.CancelKeyPress += (sender, eventArgs) => { eventArgs.Cancel = true; exitEvent.Set(); };
+                
+                CmdStartup();
+                exitEvent.WaitOne();
+                // fallthrough once a cancel event is triggered.
             }
             CmdShutdown();
         }

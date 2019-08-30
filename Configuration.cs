@@ -32,13 +32,16 @@
 // $Id$
 //
 
-using Nini.Config;
 using OpenMetaverse;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Linq;
+using Tomlyn;
+using Tomlyn.Model;
+using Tomlyn.Syntax;
 
 namespace WoofBot
 {
@@ -49,17 +52,17 @@ namespace WoofBot
     {
         public string ID;
     }
-    public abstract class AChannelsInfo<val> : AInfo
+    public abstract class AChannelsInfo<V> : AInfo
     {
-        public Dictionary<string, val> Channels = new Dictionary<string, val>();
+        public Dictionary<string, V> Channels = new Dictionary<string, V>();
 
-        public static void AddChannel<T>(IniConfig conf, string id, string server_id, ref List<T> servers) where T : AChannelsInfo<val>
+        public static void AddChannel<T>(TomlTable conf, string id, string server_id, ref List<T> servers) where T : AChannelsInfo<V>
         {
             var si = servers.Find(s => s.ID == server_id);
             if (si == null)
-                Console.WriteLine($"Warning, unknown server in section [{conf.Name}]");
+                Console.WriteLine($"Warning, unknown server in section [ircchan.{id}]");
             else
-                si.Channels[id] = (val)Convert.ChangeType(conf.GetString("channel").ToLower(), typeof(val));
+                si.Channels[id] = (V)Convert.ChangeType(((string)conf["channel"]).ToLower(), typeof(V));
         }
     }
     public abstract class AChanStringsInfo : AChannelsInfo<string> { }
@@ -77,12 +80,12 @@ namespace WoofBot
         public DiscordServerInfo DiscordServerConf;
         public string DiscordChannelID;
 
-        public static BridgeInfo Create(IniConfig conf, string id)
+        public static BridgeInfo Create(TomlTable conf, string id)
         {
             UUID? groupID = null;
-            if (conf.Contains("grid_group"))
+            if (conf.ContainsKey("grid_group"))
             {
-                var str = conf.GetString("grid_group");
+                var str = (string)conf["grid_group"];
                 if (!str.Equals("local"))
                     try { groupID = UUID.Parse(str); } catch { }
             }
@@ -91,12 +94,12 @@ namespace WoofBot
             var bi = new BridgeInfo()
             {
                 ID = id,
-                IrcChanID = conf.GetString("ircchan"),
+                IrcChanID = (string)conf["ircchan"],
                 GridGroup = groupID,
 #if SLACK
                 SlackChannelID = conf.GetString("slackchannel"),
 #endif
-                DiscordChannelID = conf.GetString("discordchannel")
+                DiscordChannelID = (string)conf["discordchannel"]
             };
             return bi;
         }
@@ -115,17 +118,41 @@ namespace WoofBot
         public List<BridgeInfo> Bridges = new List<BridgeInfo>();
 
         internal Dictionary<string, ulong> Regions = new Dictionary<string, ulong>();
-        IniConfigSource inifile;
+        DocumentSyntax tomlDoc;
 
         public Configuration(string conf)
         {
             ConfPath = conf;
-            inifile = new IniConfigSource(ConfPath + "/jarilo.conf")
-            {
-                CaseSensitive = false
-            };
+            var filename = ConfPath + "/woofbot.toml";
+            tomlDoc = Toml.Parse(File.ReadAllText(filename), filename);
             LoadConfFile();
             LoadRegions();
+        }
+
+        private void TableParse(TomlTable table, string key, Action<string, TomlTable> action)
+        {
+            if (table.ContainsKey(key))
+            {
+                try
+                {
+                    var subTable = table[key] as TomlTable;
+                    foreach (var pair in subTable)
+                    {
+                        try
+                        {
+                            action(pair.Key, pair.Value as TomlTable);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed parsing section {key}.{pair.Key}: {ex.Message}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed parsing section {key}: {ex.Message}");
+                }
+            }
         }
 
         public void LoadConfFile()
@@ -133,69 +160,53 @@ namespace WoofBot
             Masters.Clear();
             Bots.Clear();
 
-            foreach (IniConfig conf in inifile.Configs)
+            var table = tomlDoc.ToModel();
+
+            TableParse(table, "master", (_, master) =>
             {
-                var head = Regex.Split(conf.Name, @"\s*:\s*");
-                if (head.Length < 2)
+                if (UUID.TryParse(master["uuid"] as string, out UUID masterId))
                 {
-                    Console.WriteLine($"Invalid section name {conf.Name}, expected format type:id");
-                    continue;
+                    if (masterId != UUID.Zero)
+                        Masters.Add(masterId, master["name"] as string);
                 }
+            });
 
-                string type = head[0];
-                string id = head[1];
+            TableParse(table, "bot", (id, conf) => Bots.Add(BotInfo.Create(conf, id)));
 
-                try
-                {
-                    if (type == "master")
-                    {
-                        try
-                        {
-                            var masterId = (UUID)conf.Get("uuid");
-                            if (masterId != UUID.Zero)
-                                Masters.Add(masterId, conf.Get("name"));
-                        }
-                        catch { }
-                    }
-                    else if (type == "bot")
-                        Bots.Add(BotInfo.Create(conf, id));
-                    else if (type == "ircserver")
-                        IrcServers.Add(IrcServerInfo.Create(conf, id));
-                    else if (type == "ircchan")
-                        IrcServerInfo.AddChannel(conf, id, conf.GetString("irc_server"), ref IrcServers);
+            TableParse(table, "ircserver", (id, conf) => IrcServers.Add(IrcServerInfo.Create(conf, id)));
+
+            TableParse(table, "ircchan", (id, conf) => IrcServerInfo.AddChannel(conf, id, conf["irc_server"] as string, ref IrcServers));
+
 #if SLACK
-                    else if (type == "slack")
-                        SlackServers.Add(new SlackServerInfo(){ID = id, APIKEY = conf.GetString("slack_key")});
-                    else if (type == "slackchannel")
-                        SlackServerInfo.AddChannel(conf, id, conf.GetString("slack_server"), ref SlackServers);
+            TableParse(table, "slack", (id, conf) => SlackServers.Add(new SlackServerInfo(){ID = id, APIKEY = conf["slack_key"] as string}));
+
+            TableParse(table, "slackchannel", (id, conf) => SlackServerInfo.AddChannel(conf, id, conf["slack_server"] as string, ref SlackServers));
 #endif
-                    else if (type == "discord")
-                        DiscordServers.Add(new DiscordServerInfo()
-                        {
-                            ID = id,
-                            token = conf.GetString("token"),
-                            SafeRoles = new List<string>(conf.GetString("saferoles").Split(',')),
-                            DevRoles = new List<string>(conf.GetString("devroles").Split(','))
-                        });
-                    else if (type == "discordchannel")
-                        DiscordServerInfo.AddChannel(conf, id, conf.GetString("discord_server"), ref DiscordServers);
-                    else if (type == "bridge")
-                    {
-                        var bi = BridgeInfo.Create(conf, id);
-                        bi.IrcServerConf = IrcServers.Find(s => s.Channels.ContainsKey(bi.IrcChanID));
-                        if (conf.Contains("bot")) bi.Bot = Bots.Find(b => b.ID == conf.GetString("bot"));
-#if SLACK
-                        bi.SlackServerConf = SlackServers.Find(slack => slack.Channels.ContainsKey(bi.SlackChannelID));
-#endif
-                        bi.DiscordServerConf = DiscordServers.Find(d => d.Channels.ContainsKey(bi.DiscordChannelID));
-                        Bridges.Add(bi);
-                    }
-                }
-                catch (Exception ex)
+            TableParse(table, "discord", (id, conf) =>
+            {
+                DiscordServers.Add(new DiscordServerInfo()
                 {
-                    Console.WriteLine($"Failed parsing section {conf.Name}: {ex.Message}");
-                }
-            }
+                    ID = id,
+                    token = conf["token"] as string,
+                    SafeRoles = ((TomlArray)conf["saferoles"]).Select(e => e as string).ToList(),
+                    DevRoles = ((TomlArray)conf["devroles"]).Select(e => e as string).ToList()
+                });
+            });
+
+            TableParse(table, "discordchannel", (id, conf) => DiscordServerInfo.AddChannel(conf, id, (string)conf["discord_server"], ref DiscordServers));
+
+            TableParse(table, "bridge", (id, conf) =>
+            {
+                var bi = BridgeInfo.Create(conf, id);
+                bi.IrcServerConf = IrcServers.Find(s => s.Channels.ContainsKey(bi.IrcChanID));
+                if (conf.ContainsKey("bot"))
+                    bi.Bot = Bots.Find(b => b.ID == conf["bot"] as string);
+#if SLACK
+                bi.SlackServerConf = SlackServers.Find(slack => slack.Channels.ContainsKey(bi.SlackChannelID));
+#endif
+                bi.DiscordServerConf = DiscordServers.Find(d => d.Channels.ContainsKey(bi.DiscordChannelID));
+                Bridges.Add(bi);
+            });
         }
 
         public void LoadRegions()

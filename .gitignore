@@ -5,7 +5,7 @@ obj/
 *.swp
 *.user
 
-project.lock.json
+woofbot.toml
 
 # NuGet Packages
 *.nupkg

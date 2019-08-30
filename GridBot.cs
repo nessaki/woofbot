@@ -32,11 +32,11 @@
 // $Id$
 //
 
-using Nini.Config;
 using OpenMetaverse;
 using System;
 using System.Text;
 using System.Threading;
+using Tomlyn.Model;
 
 namespace WoofBot
 {
@@ -53,34 +53,37 @@ namespace WoofBot
         public string GridName = "agni";
         public string Name => $"{FirstName} {LastName}";
 
-        public static BotInfo Create(IniConfig conf, string id)
+        public static BotInfo Create(TomlTable conf, string id)
         {
             var b = new BotInfo()
             {
                 ID = id,
-                FirstName = conf.Get("first_name"),
-                LastName = conf.Get("last_name"),
-                Password = conf.Get("password"),
-                SitOn = (UUID)conf.Get("sit_on"),
-                Sim = conf.Get("sim"),
-                GridName = conf.Contains("grid_name") ? conf.GetString("grid_name") : "agni"
+                FirstName = conf["first_name"] as string,
+                LastName = conf["last_name"] as string,
+                Password = conf["password"] as string,
+                SitOn = (conf.ContainsKey("sit_on") ? UUID.Parse((string)conf["sit_on"]): UUID.Zero),
+                Sim = conf.ContainsKey("sim") ? (string)conf["sim"] : null,
+                GridName = conf.ContainsKey("grid_name") ? conf["grid_name"] as string : "agni"
             };
             if (string.IsNullOrEmpty(b.FirstName) || string.IsNullOrEmpty(b.LastName) || string.IsNullOrEmpty(b.Password))
                 throw new Exception("Incomplete bot information, first_name, last_name and password are required");
             try
             {
-                float pos_x = conf.GetFloat("pos_x");
-                float pos_y = conf.GetFloat("pos_y");
-                float pos_z = conf.GetFloat("pos_z");
-                if (!string.IsNullOrEmpty(b.Sim))
+                if (conf.ContainsKey("pos_x") && conf.ContainsKey("pos_y") && conf.ContainsKey("pos_z"))
                 {
-                    b.PosInSim = new Vector3(pos_x, pos_y, pos_z);
+                    float pos_x = (float)conf["pos_x"];
+                    float pos_y = (float)conf["pos_y"];
+                    float pos_z = (float)conf["pos_z"];
+                    if (!string.IsNullOrEmpty(b.Sim))
+                    {
+                        b.PosInSim = new Vector3(pos_x, pos_y, pos_z);
+                    }
                 }
             }
             catch { }
-            if (conf.Contains("login_uri"))
+            if (conf.ContainsKey("login_uri"))
             {
-                b.LoginURI = conf.Get("login_uri");
+                b.LoginURI = conf["login_uri"] as string;
             }
             return b;
         }
@@ -108,13 +111,17 @@ namespace WoofBot
                 persist = value;
                 if (value)
                 {
-                    networkChecker.Enabled = true;
-                    positionChecker.Enabled = true;
+                    if (networkChecker != null)
+                        networkChecker.Enabled = true;
+                    if (positionChecker != null)
+                        positionChecker.Enabled = true;
                 }
                 else
                 {
-                    networkChecker.Enabled = false;
-                    positionChecker.Enabled = true;
+                    if (networkChecker != null)
+                        networkChecker.Enabled = false;
+                    if (positionChecker != null)
+                        positionChecker.Enabled = true;
                 }
             }
             get => persist;
@@ -148,7 +155,7 @@ namespace WoofBot
                 networkChecker.Elapsed += new System.Timers.ElapsedEventHandler(NetworkChecker_Elapsed);
             }
 
-            if (positionChecker == null)
+            if (!string.IsNullOrEmpty(Conf.Sim) && positionChecker == null)
             {
                 positionChecker = new System.Timers.Timer(60 * 1000)
                 {
