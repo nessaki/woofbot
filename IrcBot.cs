@@ -88,11 +88,11 @@ namespace WoofBot
             MainProgram = p;
             Conf = c;
             MainConf = m;
-            irc.OnRawMessage += new IrcEventHandler(Irc_OnRawMessage);
-            irc.OnJoin += new JoinEventHandler(Irc_OnJoin);
-            irc.OnConnected += new EventHandler(Irc_OnConnected);
-            irc.OnChannelAction += new ActionEventHandler(Irc_OnChannelAction);
-            irc.OnChannelMessage += new IrcEventHandler(Irc_OnChannelMessage);
+            irc.OnRawMessage += Irc_OnRawMessage;
+            irc.OnJoin += Irc_OnJoin;
+            irc.OnConnected += Irc_OnConnected;
+            irc.OnChannelAction += Irc_OnChannelAction;
+            irc.OnChannelMessage += Irc_OnChannelMessage;
         }
 
         public void Dispose()

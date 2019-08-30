@@ -100,6 +100,8 @@ namespace WoofBot
         System.Timers.Timer networkChecker;
         System.Timers.Timer positionChecker;
 
+        private readonly object _lock = new object();
+
         public bool Persistent
         {
             set
@@ -237,24 +239,24 @@ namespace WoofBot
             Client.Assets.Cache.AutoPruneEnabled = false;
 
             // Event handlers
-            Client.Network.SimChanged += new EventHandler<SimChangedEventArgs>(Network_SimChanged);
-            Client.Network.Disconnected += new EventHandler<DisconnectedEventArgs>(Network_Disconnected);
-            Client.Network.LoginProgress += new EventHandler<LoginProgressEventArgs>(Network_LoginProgress);
-            Client.Self.IM += new EventHandler<InstantMessageEventArgs>(Self_IM);
-            Client.Self.ChatFromSimulator += new EventHandler<ChatEventArgs>(LocalChat);
-            Client.Objects.ObjectUpdate += new EventHandler<PrimEventArgs>(Objects_ObjectUpdate);
+            Client.Network.SimChanged += Network_SimChanged;
+            Client.Network.Disconnected += Network_Disconnected;
+            Client.Network.LoginProgress += Network_LoginProgress;
+            Client.Self.IM += Self_IM;
+            Client.Self.ChatFromSimulator += LocalChat;
+            Client.Objects.ObjectUpdate += Objects_ObjectUpdate;
         }
 
         public void CleanUp()
         {
             if (Client != null)
             {
-                Client.Network.SimChanged -= new EventHandler<SimChangedEventArgs>(Network_SimChanged);
-                Client.Network.Disconnected -= new EventHandler<DisconnectedEventArgs>(Network_Disconnected);
-                Client.Network.LoginProgress -= new EventHandler<LoginProgressEventArgs>(Network_LoginProgress);
-                Client.Self.IM -= new EventHandler<InstantMessageEventArgs>(Self_IM);
-                Client.Self.ChatFromSimulator -= new EventHandler<ChatEventArgs>(LocalChat);
-                Client.Objects.ObjectUpdate -= new EventHandler<PrimEventArgs>(Objects_ObjectUpdate);
+                Client.Network.SimChanged -= Network_SimChanged;
+                Client.Network.Disconnected -= Network_Disconnected;
+                Client.Network.LoginProgress -= Network_LoginProgress;
+                Client.Self.IM -= Self_IM;
+                Client.Self.ChatFromSimulator -= LocalChat;
+                Client.Objects.ObjectUpdate -= Objects_ObjectUpdate;
 
                 SittingOn = null;
                 Client = null;
@@ -402,7 +404,7 @@ namespace WoofBot
                     $"(grid:{Conf.GridName}) {name}", $"{begin} {e.Message}");
         }
 
-        object SyncJoinSession = new object();
+        private readonly object SyncJoinSession = new object();
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
         {
             if (!Client.Network.Connected) return;
@@ -582,7 +584,7 @@ namespace WoofBot
 
         public bool Login()
         {
-            lock (this)
+            lock (_lock)
             {
                 if (LoggingIn)
                 {

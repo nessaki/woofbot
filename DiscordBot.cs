@@ -63,7 +63,7 @@ namespace WoofBot
             MainConf = m;
         }
 
-        private async Task Log(LogMessage msg)
+        private Task Log(LogMessage msg)
         {
             Func<LogSeverity, Helpers.LogLevel> ToLogLevel = s =>
             {
@@ -76,14 +76,13 @@ namespace WoofBot
                 }
                 return Helpers.LogLevel.None;
             };
-            // FIXME: Hacked to be a task because Discord.Net wants it.
-            await Task.Run(() => Logger.Log($"[Discord:{Conf.ID}] {msg.Message}", ToLogLevel(msg.Severity)));
-            //return Task.CompletedTask;
+            // Run the log in it's own thread
+            Task.Run(() => Logger.Log($"[Discord:{Conf.ID}] {msg.Message}", ToLogLevel(msg.Severity)));
+            return Task.CompletedTask;
         }
 
         async Task ConnectAsync()
         {
-            Client.Log += Log;
             await Client.LoginAsync(TokenType.Bot, Conf.token);
             await Client.StartAsync();
 
@@ -102,23 +101,27 @@ namespace WoofBot
                 LogLevel = LogSeverity.Info
             });
 
+            Client.Log += Log;
             Client.MessageReceived += Client_OnMessageReceived;
             Task.Run(ConnectAsync);
         }
 
-        private async Task Client_OnMessageReceived(SocketMessage msg)
+        private Task Client_OnMessageReceived(SocketMessage msg)
         {
             ulong channel_id = msg.Channel.Id;
             SocketUser sender = msg.Author;
-            if (sender.IsBot || sender.Id == Client.CurrentUser.Id) return;
+            if (sender.IsBot || sender.Id == Client.CurrentUser.Id)
+                return Task.CompletedTask;
+
             if (Conf.Channels.Values.Contains(channel_id))
             {
-                // FIXME: Hacked to be a task because Discord.Net wants it.
-                await Task.Run(() => Relay(msg));
-                // return Task.CompletedTask;
+                // run on it's own thread.
+                Task.Run(() => Relay(msg));
             }
             // TODO: Commands?
             //else if (owners.Contains(msg.Author.Id)) await Command(msg);
+
+            return Task.CompletedTask;
         }
 
         private void Relay(SocketMessage msg)
