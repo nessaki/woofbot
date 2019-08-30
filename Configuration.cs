@@ -32,13 +32,13 @@
 // $Id$
 //
 
+using Nini.Config;
+using OpenMetaverse;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using Nini.Config;
-using OpenMetaverse;
 
 namespace WoofBot
 {
@@ -53,7 +53,7 @@ namespace WoofBot
     {
         public Dictionary<string, val> Channels = new Dictionary<string, val>();
 
-        public static void AddChannel<T>(IniConfig conf, string id, string server_id, ref List<T> servers) where T:AChannelsInfo<val>
+        public static void AddChannel<T>(IniConfig conf, string id, string server_id, ref List<T> servers) where T : AChannelsInfo<val>
         {
             var si = servers.Find(s => s.ID == server_id);
             if (si == null)
@@ -172,7 +172,8 @@ namespace WoofBot
                     else if (type == "discord")
                         DiscordServers.Add(new DiscordServerInfo()
                         {
-                            ID = id, token = conf.GetString("token"),
+                            ID = id,
+                            token = conf.GetString("token"),
                             SafeRoles = new List<string>(conf.GetString("saferoles").Split(',')),
                             DevRoles = new List<string>(conf.GetString("devroles").Split(','))
                         });

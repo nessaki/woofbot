@@ -32,15 +32,14 @@
 // $Id$
 //
 
+using Meebey.SmartIrc4net;
+using Nini.Config;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Meebey.SmartIrc4net;
-using Nini.Config;
-using OpenMetaverse;
 
 namespace WoofBot
 {

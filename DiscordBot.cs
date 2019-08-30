@@ -31,13 +31,13 @@
 // $Id$
 //
 
+using Discord;
+using Discord.WebSocket;
+using OpenMetaverse;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OpenMetaverse;
-using Discord;
 using System.Threading.Tasks;
-using Discord.WebSocket;
 
 namespace WoofBot
 {
@@ -132,7 +132,7 @@ namespace WoofBot
             Func<char, string, bool> begandend = (c, str) => c == str.First() && c == str.Last();
             if (text.Length > 2 && (begandend('_', text) // Discord's /me support does this.
                 || begandend('*', text)))
-                text = $"/me {text.Substring(1, text.Length-2)}";
+                text = $"/me {text.Substring(1, text.Length - 2)}";
 
             foreach (var m in msg.Attachments)
                 text += (text.Length == 0 ? "" : "\n") + m.Url;

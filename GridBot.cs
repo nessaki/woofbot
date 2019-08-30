@@ -32,12 +32,11 @@
 // $Id$
 //
 
+using Nini.Config;
+using OpenMetaverse;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-using OpenMetaverse;
-using Nini.Config;
 
 namespace WoofBot
 {
@@ -233,7 +232,7 @@ namespace WoofBot
             Client.Settings.STORE_LAND_PATCHES = false;
             Client.Settings.MULTIPLE_SIMS = false;
             Client.Self.Movement.Camera.Far = 5.0f;
-    
+
             Client.Settings.USE_ASSET_CACHE = true;
             Client.Settings.ASSET_CACHE_DIR = "./cache";
             Client.Assets.Cache.AutoPruneEnabled = false;
@@ -328,7 +327,7 @@ namespace WoofBot
 
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
-            if ( e.IM.FromAgentName == Client.Self.Name) return;
+            if (e.IM.FromAgentName == Client.Self.Name) return;
             string name = Strip(e.IM.FromAgentName);
             StatusMsg($"{e.IM.Dialog}({name}): {e.IM.Message}");
             if (e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)

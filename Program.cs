@@ -32,13 +32,13 @@
 // $Id$
 //
 
+using OpenMetaverse;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using OpenMetaverse;
-using System.Linq;
 
 namespace WoofBot
 {
@@ -64,7 +64,7 @@ namespace WoofBot
         void DisplayPrompt()
             => Console.Write($"[Bot {OnlineBots()} of {TotalBots()} online]> ");
 
-	    public void StartRelay<T>(string type, List<T> Bots) where T:IRelay
+        public void StartRelay<T>(string type, List<T> Bots) where T : IRelay
             => Bots.ForEach(bot =>
             {
                 if (!bot.IsConnected())
