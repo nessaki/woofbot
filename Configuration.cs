@@ -34,15 +34,14 @@
 
 using OpenMetaverse;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Linq;
+using System.Text;
 using Tomlyn;
 using Tomlyn.Model;
 using Tomlyn.Syntax;
-using System.Collections.Concurrent;
 
 namespace WoofBot
 {

@@ -61,7 +61,7 @@ namespace WoofBot
                 FirstName = conf["first_name"] as string,
                 LastName = conf["last_name"] as string,
                 Password = conf["password"] as string,
-                SitOn = (conf.ContainsKey("sit_on") ? UUID.Parse((string)conf["sit_on"]): UUID.Zero),
+                SitOn = (conf.ContainsKey("sit_on") ? UUID.Parse((string)conf["sit_on"]) : UUID.Zero),
                 Sim = conf.ContainsKey("sim") ? (string)conf["sim"] : null,
                 GridName = conf.ContainsKey("grid_name") ? conf["grid_name"] as string : "agni"
             };
@@ -336,7 +336,7 @@ namespace WoofBot
         {
             // Ignore ourselves
             if (e.IM.FromAgentID == Client.Self.AgentID) return;
-            
+
             string name = Strip(e.IM.FromAgentName);
             StatusMsg($"{e.IM.Dialog}({name}): {e.IM.Message}");
 

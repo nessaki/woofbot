@@ -267,7 +267,7 @@ namespace WoofBot
                 var exitEvent = new ManualResetEvent(false);
 
                 Console.CancelKeyPress += (sender, eventArgs) => { eventArgs.Cancel = true; exitEvent.Set(); };
-                
+
                 CmdStartup();
                 exitEvent.WaitOne();
                 // fallthrough once a cancel event is triggered.
