@@ -612,7 +612,7 @@ namespace WoofBot
             ThreadPool.QueueUserWorkItem(sync =>
             {
                 InitializeClient();
-                LoginParams param = Client.Network.DefaultLoginParams(Conf.FirstName, Conf.LastName, Conf.Password, "BarkBot", Program.Version);
+                LoginParams param = Client.Network.DefaultLoginParams(Conf.FirstName, Conf.LastName, Conf.Password, "WoofBot", Program.Version);
                 param.URI = Conf.LoginURI;
                 param.Start = "last";
                 if (Client.Network.Login(param))
