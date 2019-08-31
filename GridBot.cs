@@ -334,49 +334,58 @@ namespace WoofBot
 
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
-            if (e.IM.FromAgentName == Client.Self.Name) return;
+            // Ignore ourselves
+            if (e.IM.FromAgentID == Client.Self.AgentID) return;
+            
             string name = Strip(e.IM.FromAgentName);
             StatusMsg($"{e.IM.Dialog}({name}): {e.IM.Message}");
-            if (e.IM.FromAgentID != UUID.Zero && e.IM.FromAgentID != Client.Self.AgentID)
-                MainProgram.RelayMessage(Program.EBridgeType.GRID,
-                    b => b.Bot == Conf && b?.GridGroup == e.IM.IMSessionID,
-                    $"(grid:{Conf.GridName}) {name}", e.IM.Message);
 
-            if (!MainConf.IsMaster(e.IM.FromAgentID))
+            if (e.IM.GroupIM)
             {
-                if (!e.IM.GroupIM && e.IM.IMSessionID != e.IM.ToAgentID &&
-                    (e.IM.Dialog.Equals(InstantMessageDialog.MessageFromAgent) || e.IM.Dialog.Equals(InstantMessageDialog.InventoryOffered)))
+                if (e.IM.FromAgentID != UUID.Zero)
+                {
+                    MainProgram.RelayMessage(Program.EBridgeType.GRID,
+                        b => b.Bot == Conf && b?.GridGroup == e.IM.IMSessionID,
+                        $"(grid:{Conf.GridName}) {name}", e.IM.Message);
+                }
+            }
+            else if (MainConf.IsMaster(e.IM.FromAgentID))
+            {
+                ThreadPool.QueueUserWorkItem(sync =>
+                {
+                    switch (e.IM.Dialog)
+                    {
+                        case InstantMessageDialog.RequestTeleport:
+                            StatusMsg($"Master {e.IM.FromAgentName} is sending teleport");
+                            Client.Self.TeleportLureRespond(e.IM.FromAgentID, e.IM.IMSessionID, true);
+                            break;
+                        case InstantMessageDialog.RequestLure:
+                            StatusMsg($"Master {e.IM.FromAgentName} is requesting teleport");
+                            Client.Self.SendTeleportLure(e.IM.FromAgentID);
+                            break;
+                        case InstantMessageDialog.FriendshipOffered:
+                            Client.Friends.AcceptFriendship(e.IM.FromAgentID, e.IM.IMSessionID);
+                            break;
+                        case InstantMessageDialog.MessageFromAgent:
+                            ProcessMessage(e.IM);
+                            break;
+                        case InstantMessageDialog.GroupInvitation:
+                            Client.Self.InstantMessage(Client.Self.Name, e.IM.FromAgentID, string.Empty, e.IM.IMSessionID, InstantMessageDialog.GroupInvitationAccept, InstantMessageOnline.Online, Vector3.Zero, UUID.Zero, null);
+                            break;
+                    }
+                });
+            }
+            else
+            {
+                if (e.IM.IMSessionID != e.IM.ToAgentID
+                    && (e.IM.Dialog.Equals(InstantMessageDialog.MessageFromAgent) || e.IM.Dialog.Equals(InstantMessageDialog.InventoryOffered)))
                 {
                     ReplyIm(e.IM, "Sorry, I am a chat relay bot, you were probably meaning to talk to my masters in some group."
-                        + "\nIf you are sending me a texture, might I suggest uploading it to somewhere such as imgur and posting the link in chat? I'll gladly let my masters know then!");
+                        + "\nIf you are sending me a texture, might I suggest uploading it to somewhere such as imgur and posting the link in chat?" +
+                        "I'll gladly let my masters know then!");
                     Console.WriteLine($"I just sent a response message to {e.IM.FromAgentName}:\n{e.IM}");
                 }
-                return;
             }
-
-            ThreadPool.QueueUserWorkItem(sync =>
-            {
-                switch (e.IM.Dialog)
-                {
-                    case InstantMessageDialog.RequestTeleport:
-                        StatusMsg($"Master {e.IM.FromAgentName} is sending teleport");
-                        Client.Self.TeleportLureRespond(e.IM.FromAgentID, e.IM.IMSessionID, true);
-                        break;
-                    case InstantMessageDialog.RequestLure:
-                        StatusMsg($"Master {e.IM.FromAgentName} is requesting teleport");
-                        Client.Self.SendTeleportLure(e.IM.FromAgentID);
-                        break;
-                    case InstantMessageDialog.FriendshipOffered:
-                        Client.Friends.AcceptFriendship(e.IM.FromAgentID, e.IM.IMSessionID);
-                        break;
-                    case InstantMessageDialog.MessageFromAgent:
-                        ProcessMessage(e.IM);
-                        break;
-                    case InstantMessageDialog.GroupInvitation:
-                        Client.Self.InstantMessage(Client.Self.Name, e.IM.FromAgentID, string.Empty, e.IM.IMSessionID, InstantMessageDialog.GroupInvitationAccept, InstantMessageOnline.Online, Vector3.Zero, UUID.Zero, null);
-                        break;
-                }
-            });
         }
 
         private void LocalChat(object sender, ChatEventArgs e)
@@ -582,7 +591,7 @@ namespace WoofBot
                     if (Client.Grid.GetGridRegion(Conf.Sim, GridLayerType.Objects, out var region))
                     {
                         Conf.SimHandle = region.RegionHandle;
-                        MainConf.SaveCachedRegionHandle(Conf.Sim, Conf.SimHandle);
+                        MainConf.UpdateRegionHandle(Conf.Sim, Conf.SimHandle);
                     }
                 }
             }

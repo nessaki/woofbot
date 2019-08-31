@@ -146,14 +146,12 @@ namespace WoofBot
         {
             if (c == null) return;
             var safes = bridge.DiscordServerConf.SafeRoles;
-            bool has_safes = safes.Any();
             var devs = bridge.DiscordServerConf.DevRoles;
-            bool has_devs = devs.Any();
             foreach (var r in c.Guild.Roles)
             {
-                if (r.IsMentionable && (!has_safes || !safes.Contains(r.Name)))
+                if (r.IsMentionable && (!safes.Contains(r.Name)))
                     msg = msg.Replace($"@{r.Name}", r.Mention);
-                if (has_devs && devs.Contains(r.Name))
+                if (devs.Contains(r.Name))
                 {
                     foreach (var m in r.Members)
                     {

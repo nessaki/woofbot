@@ -129,7 +129,8 @@ namespace WoofBot
             {
                 if (irc != null)
                 {
-                    irc.Quit(1000, "quiting");
+                    if (irc.IsConnected)
+                        irc.Quit(1000, "quiting");
                     irc.Dispose();
                     irc = null;
                 }

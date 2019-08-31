@@ -42,6 +42,7 @@ using System.Linq;
 using Tomlyn;
 using Tomlyn.Model;
 using Tomlyn.Syntax;
+using System.Collections.Concurrent;
 
 namespace WoofBot
 {
@@ -117,7 +118,7 @@ namespace WoofBot
         public List<DiscordServerInfo> DiscordServers = new List<DiscordServerInfo>();
         public List<BridgeInfo> Bridges = new List<BridgeInfo>();
 
-        internal Dictionary<string, ulong> Regions = new Dictionary<string, ulong>();
+        internal ConcurrentDictionary<string, ulong> Regions = new ConcurrentDictionary<string, ulong>();
         DocumentSyntax tomlDoc;
 
         public Configuration(string conf)
@@ -126,7 +127,6 @@ namespace WoofBot
             var filename = ConfPath + "/woofbot.toml";
             tomlDoc = Toml.Parse(File.ReadAllText(filename), filename);
             LoadConfFile();
-            LoadRegions();
         }
 
         private void TableParse(TomlTable table, string key, Action<string, TomlTable> action)
@@ -209,63 +209,11 @@ namespace WoofBot
             });
         }
 
-        public void LoadRegions()
-        {
-            Regions = new Dictionary<string, ulong>();
-
-            try
-            {
-                StreamReader reader = new StreamReader(ConfPath + "/regions.txt");
-                Regex splitter = new Regex(@"[\t ]*=[\t ]*", RegexOptions.Compiled);
-
-                while (!reader.EndOfStream)
-                {
-                    string line = reader.ReadLine();
-                    string[] args = splitter.Split(line.Trim(), 2);
-                    if (args.Length >= 2)
-                    {
-                        if (ulong.TryParse(args[1], out ulong handle) && handle > 0)
-                        {
-                            var arg = args[0].ToLower();
-                            if (!Regions.ContainsKey(arg))
-                                Regions.Add(arg, handle);
-                        }
-                    }
-                }
-            }
-            catch { }
-        }
-
-        public void SaveRegions()
-        {
-            try
-            {
-                StreamWriter wr = new StreamWriter(ConfPath + "/regions.txt");
-                foreach (var r in Regions)
-                    wr.WriteLine($"{r.Key}={r.Value}");
-                wr.Close();
-            }
-            catch
-            {
-                Logger.Log("Failed to save regions handle cache.", Helpers.LogLevel.Warning);
-            }
-        }
-
         internal ulong GetRegionHandle(string name)
             => Regions.TryGetValue(name.ToLower(), out ulong handle) ? handle : 0;
 
-        internal void SaveCachedRegionHandle(string name, ulong handle)
-        {
-            lock (Regions)
-            {
-                var str = name.ToLower();
-                if (!Regions.ContainsKey(str))
-                {
-                    Regions.Add(str, handle);
-                    SaveRegions();
-                }
-            }
-        }
+        internal void UpdateRegionHandle(string name, ulong handle)
+            => Regions.TryAdd(name, handle);
 
         public override string ToString()
         {
