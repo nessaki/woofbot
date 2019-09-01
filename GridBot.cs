@@ -338,16 +338,15 @@ namespace WoofBot
             if (e.IM.FromAgentID == Client.Self.AgentID) return;
 
             string name = Strip(e.IM.FromAgentName);
-            StatusMsg($"{e.IM.Dialog}({name}): {e.IM.Message}");
+            StatusMsg($"{e.IM.Dialog}({name})[{e.IM.IMSessionID}]: {e.IM.Message}");
 
-            if (e.IM.GroupIM)
+            // Hack because group IM flag is bugged...
+            if (e.IM.Dialog == InstantMessageDialog.SessionSend
+                || (e.IM.Dialog == InstantMessageDialog.MessageFromAgent && e.IM.IMSessionID != (e.IM.FromAgentID ^ e.IM.ToAgentID)))
             {
-                if (e.IM.FromAgentID != UUID.Zero)
-                {
-                    MainProgram.RelayMessage(Program.EBridgeType.GRID,
+                MainProgram.RelayMessage(Program.EBridgeType.GRID,
                         b => b.Bot == Conf && b?.GridGroup == e.IM.IMSessionID,
                         $"(grid:{Conf.GridName}) {name}", e.IM.Message);
-                }
             }
             else if (MainConf.IsMaster(e.IM.FromAgentID))
             {
