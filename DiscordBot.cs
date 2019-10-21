@@ -147,7 +147,7 @@ namespace WoofBot
                 text += (text.Length == 0 ? "" : "\n") + m.Url;
 
             MainProgram.RelayMessage(Program.EBridgeType.DISCORD,
-                b => b.DiscordServerConf == Conf && Conf.Channels[b.DiscordChannelID] == msg.Channel.Id,
+                b => b.DiscordServerConf == Conf && Conf.Channels.Any(c => c.Key == b.DiscordChannelID && c.Value == msg.Channel.Id),
                 from, text);
         }
 

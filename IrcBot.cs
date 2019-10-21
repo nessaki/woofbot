@@ -196,7 +196,7 @@ namespace WoofBot
                 }
 
                 MainProgram.RelayMessage(Program.EBridgeType.IRC,
-                    b => b.IrcServerConf == Conf && Conf.Channels[b.IrcChanID].Equals(channel.Name, StringComparison.OrdinalIgnoreCase),
+                    b => b.IrcServerConf == Conf && Conf.Channels.Any(pair => pair.Key == b.IrcChanID && pair.Value.Equals(channel.Name, StringComparison.OrdinalIgnoreCase)),
                     from, msg, botfrom, botmsg);
             }
         }
