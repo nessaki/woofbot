@@ -96,12 +96,23 @@ namespace WoofBot
                 /*AppName = name.Name,
                 Version = name.Version.ToString(3),
                 AppUrl = "https://bitbucket.org/alchemyviewer/woofbot",*/
+#if NDEBUG
                 LogLevel = LogSeverity.Info
+#else
+                LogLevel = LogSeverity.Debug
+#endif
             });
 
             Client.Log += Log;
             Client.MessageReceived += Client_OnMessageReceived;
+            Client.Disconnected += Client_Disconnected;
             Task.Run(ConnectAsync);
+        }
+
+        private Task Client_Disconnected(Exception arg)
+        {
+            Task.Run(() => Logger.Log($"[Discord:{Conf.ID}] Disconnected ({arg.Message})", Helpers.LogLevel.Warning));
+            return Task.CompletedTask;
         }
 
         private Task Client_OnMessageReceived(SocketMessage msg)
