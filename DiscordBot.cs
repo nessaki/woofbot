@@ -96,11 +96,7 @@ namespace WoofBot
                 /*AppName = name.Name,
                 Version = name.Version.ToString(3),
                 AppUrl = "https://bitbucket.org/alchemyviewer/woofbot",*/
-#if NDEBUG
                 LogLevel = LogSeverity.Info
-#else
-                LogLevel = LogSeverity.Debug
-#endif
             });
 
             Client.Log += Log;
