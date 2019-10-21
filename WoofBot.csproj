@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Discord.Net.WebSocket" Version="2.1.1" />
     <PackageReference Include="IrcDotNet" Version="0.7.0" />
-    <PackageReference Include="LibreMetaverse" Version="1.3.3.239" />
+    <PackageReference Include="LibreMetaverse" Version="1.4.0.260-alpha" />
     <PackageReference Include="SlackAPI" Version="1.1.2" />
     <PackageReference Include="Tomlyn" Version="0.1.1" />
   </ItemGroup>
