@@ -49,7 +49,7 @@ namespace WoofBot
         internal ulong SimHandle;
         public string Sim;
         public Vector3 PosInSim;
-        public string LoginURI = "https://login.agni.lindenlab.com/cgi-bin/login.cgi";
+        public string LoginUri = "https://login.agni.lindenlab.com/cgi-bin/login.cgi";
         public string GridName = "agni";
         public string Name => $"{FirstName} {LastName}";
 
@@ -57,7 +57,7 @@ namespace WoofBot
         {
             var b = new BotInfo()
             {
-                ID = id,
+                Id = id,
                 FirstName = conf["first_name"] as string,
                 LastName = conf["last_name"] as string,
                 Password = conf["password"] as string,
@@ -71,30 +71,34 @@ namespace WoofBot
             {
                 if (conf.ContainsKey("pos_x") && conf.ContainsKey("pos_y") && conf.ContainsKey("pos_z"))
                 {
-                    float pos_x = (float)conf["pos_x"];
-                    float pos_y = (float)conf["pos_y"];
-                    float pos_z = (float)conf["pos_z"];
+                    var posX = (float)conf["pos_x"];
+                    var posY = (float)conf["pos_y"];
+                    var posZ = (float)conf["pos_z"];
                     if (!string.IsNullOrEmpty(b.Sim))
                     {
-                        b.PosInSim = new Vector3(pos_x, pos_y, pos_z);
+                        b.PosInSim = new Vector3(posX, posY, posZ);
                     }
                 }
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
+
             if (conf.ContainsKey("login_uri"))
             {
-                b.LoginURI = conf["login_uri"] as string;
+                b.LoginUri = conf["login_uri"] as string;
             }
             return b;
         }
     }
 
-    public class GridBot : IDisposable, IRelay
+    public sealed class GridBot : IDisposable, IRelay
     {
         public GridClient Client = new GridClient();
         public BotInfo Conf;
         public AInfo GetConf() => Conf;
-        public bool LoggingIn = false;
+        private bool _loggingIn = false;
 
         Configuration MainConf;
         Program MainProgram;
@@ -104,7 +108,7 @@ namespace WoofBot
 
         private readonly object _lock = new object();
 
-        public bool Persistent
+        private bool Persistent
         {
             set
             {
@@ -131,10 +135,10 @@ namespace WoofBot
 
         public Vector3 Position
             => !IsConnected() ? Vector3.Zero :
-            (SittingOn != null && Client.Self.SittingOn == SittingOn.LocalID) ? SittingOn.Position
+            (_sittingOn != null && Client.Self.SittingOn == _sittingOn.LocalID) ? _sittingOn.Position
             : Client.Self.SimPosition;
 
-        private Primitive SittingOn;
+        private Primitive _sittingOn;
 
         public GridBot(Program p, BotInfo c, Configuration m)
         {
@@ -172,7 +176,7 @@ namespace WoofBot
 
         void StatusMsg(string msg)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             sb.AppendFormat("{0:s}]: ", DateTime.Now);
             if (IsConnected())
@@ -183,7 +187,7 @@ namespace WoofBot
             Console.WriteLine($"{sb}");
         }
 
-        void PositionChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private void PositionChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             if (!IsConnected()) return;
 
@@ -194,23 +198,21 @@ namespace WoofBot
             }
             else if (Conf.SimHandle == Client.Network.CurrentSim.Handle)
             {
-                if (Conf.SitOn != UUID.Zero && Client.Self.SittingOn == 0)
-                {
-                    Client.Self.RequestSit(Conf.SitOn, Vector3.Zero);
-                    Client.Self.Sit();
-                }
+                if (Conf.SitOn == UUID.Zero || Client.Self.SittingOn != 0) return;
+                
+                Client.Self.RequestSit(Conf.SitOn, Vector3.Zero);
+                Client.Self.Sit();
             }
         }
 
         void NetworkChecker_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (!IsConnected())
+            if (IsConnected()) return;
+            
+            StatusMsg(Conf.Name + " not logged in, trying to log in.");
+            if (!_loggingIn)
             {
-                StatusMsg(Conf.Name + " not logged in, trying to log in.");
-                if (!LoggingIn)
-                {
-                    Login();
-                }
+                Login();
             }
         }
 
@@ -219,29 +221,35 @@ namespace WoofBot
             //reinitialize SecondLife object
             CleanUp();
 
-            Client = new GridClient();
-
-            Client.Settings.USE_INTERPOLATION_TIMER = false;
-
-            // Optimize the throttle
-            Client.Throttle.Total = 15000000f;
-            Client.Throttle.Texture = 15000000f;
-            Client.Throttle.Wind = 0;
-            Client.Throttle.Cloud = 0;
-            Client.Throttle.Land = 0;
-            Client.Settings.ALWAYS_DECODE_OBJECTS = false;
-            Client.Settings.ALWAYS_REQUEST_OBJECTS = false;
-            Client.Settings.OBJECT_TRACKING = false;
-            Client.Settings.AVATAR_TRACKING = false;
-            Client.Settings.PARCEL_TRACKING = false;
-            Client.Settings.SIMULATOR_TIMEOUT = 120 * 1000;
-            Client.Settings.LOGIN_TIMEOUT = 90 * 1000;
-            Client.Settings.STORE_LAND_PATCHES = false;
-            Client.Settings.MULTIPLE_SIMS = false;
+            Client = new GridClient
+            {
+                Settings =
+                {
+                    USE_INTERPOLATION_TIMER = false,
+                    ALWAYS_DECODE_OBJECTS = false,
+                    ALWAYS_REQUEST_OBJECTS = false,
+                    OBJECT_TRACKING = false,
+                    AVATAR_TRACKING = false,
+                    PARCEL_TRACKING = false,
+                    SIMULATOR_TIMEOUT = 120 * 1000,
+                    LOGIN_TIMEOUT = 90 * 1000,
+                    STORE_LAND_PATCHES = false,
+                    MULTIPLE_SIMS = false,
+                    
+                    USE_ASSET_CACHE = true,
+                    ASSET_CACHE_DIR = "./cache"
+                },
+                Throttle =
+                {
+                    Total = 15000000f,
+                    Texture = 15000000f,
+                    Wind = 0,
+                    Cloud = 0,
+                    Land = 0
+                }
+            };
+            
             Client.Self.Movement.Camera.Far = 5.0f;
-
-            Client.Settings.USE_ASSET_CACHE = true;
-            Client.Settings.ASSET_CACHE_DIR = "./cache";
             Client.Assets.Cache.AutoPruneEnabled = false;
 
             // Event handlers
@@ -253,67 +261,65 @@ namespace WoofBot
             Client.Objects.ObjectUpdate += Objects_ObjectUpdate;
         }
 
-        public void CleanUp()
+        private void CleanUp()
         {
-            if (Client != null)
-            {
-                Client.Network.SimChanged -= Network_SimChanged;
-                Client.Network.Disconnected -= Network_Disconnected;
-                Client.Network.LoginProgress -= Network_LoginProgress;
-                Client.Self.IM -= Self_IM;
-                Client.Self.ChatFromSimulator -= LocalChat;
-                Client.Objects.ObjectUpdate -= Objects_ObjectUpdate;
+            if (Client == null) return;
+            
+            Client.Network.SimChanged -= Network_SimChanged;
+            Client.Network.Disconnected -= Network_Disconnected;
+            Client.Network.LoginProgress -= Network_LoginProgress;
+            Client.Self.IM -= Self_IM;
+            Client.Self.ChatFromSimulator -= LocalChat;
+            Client.Objects.ObjectUpdate -= Objects_ObjectUpdate;
 
-                SittingOn = null;
-                Client = null;
-            }
+            _sittingOn = null;
+            Client = null;
         }
 
         public void Dispose()
         {
             Dispose(true);
-            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
-            if (disposing)
+            if (!disposing) return;
+            
+            Logout();
+
+            if (networkChecker != null)
             {
-                Logout();
-
-                if (networkChecker != null)
-                {
-                    networkChecker.Dispose();
-                    networkChecker = null;
-                }
-
-                if (positionChecker != null)
-                {
-                    positionChecker.Dispose();
-                    positionChecker = null;
-                }
-
-                CleanUp();
+                networkChecker.Dispose();
+                networkChecker = null;
             }
+
+            if (positionChecker != null)
+            {
+                positionChecker.Dispose();
+                positionChecker = null;
+            }
+
+            CleanUp();
         }
 
         void Objects_ObjectUpdate(object sender, PrimEventArgs e)
         {
             if (e.Prim.LocalID == Client.Self.SittingOn)
             {
-                SittingOn = e.Prim;
+                _sittingOn = e.Prim;
             }
         }
 
         void Network_LoginProgress(object sender, LoginProgressEventArgs e)
         {
-            if (e.Status == LoginStatus.Success)
+            switch (e.Status)
             {
-                StatusMsg("Logged in");
-            }
-            else if (e.Status == LoginStatus.Failed)
-            {
-                StatusMsg($"Failed to login ({e.FailReason}): {e.Message}");
+                case LoginStatus.Success:
+                    StatusMsg("Logged in");
+                    break;
+                case LoginStatus.Failed:
+                    StatusMsg($"Failed to login ({e.FailReason}): {e.Message}");
+                    break;
             }
         }
 
@@ -323,7 +329,7 @@ namespace WoofBot
             ThreadPool.QueueUserWorkItem(sync =>
             {
                 Thread.Sleep(30 * 1000);
-                if (Persistent && !LoggingIn)
+                if (Persistent && !_loggingIn)
                 {
                     Login();
                 }
@@ -337,14 +343,14 @@ namespace WoofBot
             // Ignore ourselves
             if (e.IM.FromAgentID == Client.Self.AgentID) return;
 
-            string name = Strip(e.IM.FromAgentName);
+            var name = Strip(e.IM.FromAgentName);
             StatusMsg($"{e.IM.Dialog}({name})[{e.IM.IMSessionID}]: {e.IM.Message}");
 
             // Hack because group IM flag is bugged...
             if (e.IM.Dialog == InstantMessageDialog.SessionSend
                 || (e.IM.Dialog == InstantMessageDialog.MessageFromAgent && e.IM.IMSessionID != (e.IM.FromAgentID ^ e.IM.ToAgentID)))
             {
-                MainProgram.RelayMessage(Program.EBridgeType.GRID,
+                MainProgram.RelayMessage(Program.EBridgeType.Grid,
                         b => b.Bot == Conf && b?.GridGroup == e.IM.IMSessionID,
                         $"(grid:{Conf.GridName}) {name}", e.IM.Message);
             }
@@ -413,19 +419,19 @@ namespace WoofBot
             }
             StatusMsg($"{e.Type}({name}){begin} {e.Message}");
             if (e.SourceID != UUID.Zero && e.SourceID != Client.Self.AgentID)
-                MainProgram.RelayMessage(Program.EBridgeType.GRID,
+                MainProgram.RelayMessage(Program.EBridgeType.Grid,
                     b => b.Bot == Conf && b.GridGroup == null,
                     $"(grid:{Conf.GridName}) {name}", $"{begin} {e.Message}");
         }
 
-        private readonly object SyncJoinSession = new object();
+        private readonly object _syncJoinSession = new object();
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
         {
             if (!Client.Network.Connected) return;
 
             ThreadPool.QueueUserWorkItem(sync =>
             {
-                Action formatmsg = () => msg = $"{from}{(msg.StartsWith("/me ") ? msg.Substring(3) : $": {msg}")}";
+                void FormatMsg() => msg = $"{@from}{(msg.StartsWith("/me ") ? msg.Substring(3) : $": {msg}")}";
                 if (bridge.GridGroup == null) // null is local
                 {
                     var type = ChatType.Normal;
@@ -435,32 +441,32 @@ namespace WoofBot
                     else if (msg.StartsWith(cmd = "!whisper "))
                         type = ChatType.Whisper;
                     if (type != ChatType.Normal) msg = msg.Remove(cmd.Length);
-                    formatmsg();
+                    FormatMsg();
                     Client.Self.Chat(msg, 0, type);
                     return;
                 }
-                formatmsg();
+                FormatMsg();
 
-                UUID groupID = (UUID)bridge.GridGroup;
-                bool success = true;
-                lock (SyncJoinSession)
+                var groupID = (UUID)bridge.GridGroup;
+                var success = true;
+                lock (_syncJoinSession)
                 {
                     if (!Client.Self.GroupChatSessions.ContainsKey(groupID))
                     {
                         var joined = new ManualResetEvent(false);
-                        EventHandler<GroupChatJoinedEventArgs> handler = (sender, e) =>
+
+                        void Handler(object sender, GroupChatJoinedEventArgs e)
                         {
-                            if (e.SessionID == groupID)
-                            {
-                                joined.Set();
-                                Logger.Log($"{(e.Success ? "Successfully joined" : "Failed to join")} group chat {groupID}", Helpers.LogLevel.Info);
-                            }
-                        };
-                        success = false;
-                        Client.Self.GroupChatJoined += handler;
+                            if (e.SessionID != groupID) return;
+                            
+                            joined.Set();
+                            Logger.Log($"{(e.Success ? "Successfully joined" : "Failed to join")} group chat {groupID}", Helpers.LogLevel.Info);
+                        }
+
+                        Client.Self.GroupChatJoined += Handler;
                         Client.Self.RequestJoinGroupChat(groupID);
                         success = joined.WaitOne(30 * 1000);
-                        Client.Self.GroupChatJoined -= handler;
+                        Client.Self.GroupChatJoined -= Handler;
                     }
                 }
                 if (success)
@@ -474,10 +480,10 @@ namespace WoofBot
             });
         }
 
-        void ReplyIm(InstantMessage im, string msg)
+        private void ReplyIm(InstantMessage im, string msg)
             => Client.Self.InstantMessage(im.FromAgentID, msg, im.IMSessionID);
 
-        void ProcessMessage(InstantMessage im)
+        private void ProcessMessage(InstantMessage im)
         {
             var args = im.Message.Trim().Split(' ');
             if (args.Length < 1) return;
@@ -526,7 +532,7 @@ namespace WoofBot
                 case "siton":
                     if (UUID.TryParse(args[1].Trim(), out UUID objectID) && objectID != UUID.Zero)
                     {
-                        if (SittingOn != null)
+                        if (_sittingOn != null)
                         {
                             Client.Self.Stand();
                         }
@@ -556,18 +562,18 @@ namespace WoofBot
         void GetGroupInfo(InstantMessage im)
         {
             ReplyIm(im, "Getting my groups...");
-            ManualResetEvent finished = new ManualResetEvent(false);
+            var finished = new ManualResetEvent(false);
 
-            EventHandler<CurrentGroupsEventArgs> handler = (sender, e) =>
+            void Handler(object sender, CurrentGroupsEventArgs e)
             {
-                foreach (var group in e.Groups)
-                    ReplyIm(im, $"{group.Key} - {group.Value.Name}");
+                foreach (var group in e.Groups) ReplyIm(im, $"{@group.Key} - {@group.Value.Name}");
                 finished.Set();
-            };
-            Client.Groups.CurrentGroups += handler;
+            }
+
+            Client.Groups.CurrentGroups += Handler;
             Client.Groups.RequestCurrentGroups();
             finished.WaitOne(30 * 1000);
-            Client.Groups.CurrentGroups -= handler;
+            Client.Groups.CurrentGroups -= Handler;
         }
 
         void Network_SimChanged(object sender, SimChangedEventArgs e)
@@ -582,29 +588,26 @@ namespace WoofBot
 
         private void UpdateSimHandle()
         {
-            if (!string.IsNullOrEmpty(Conf.Sim))
-            {
-                Conf.SimHandle = MainConf.GetRegionHandle(Conf.Sim);
-                if (Conf.SimHandle == 0)
-                {
-                    if (Client.Grid.GetGridRegion(Conf.Sim, GridLayerType.Objects, out var region))
-                    {
-                        Conf.SimHandle = region.RegionHandle;
-                        MainConf.UpdateRegionHandle(Conf.Sim, Conf.SimHandle);
-                    }
-                }
-            }
+            if (string.IsNullOrEmpty(Conf.Sim)) return;
+            
+            Conf.SimHandle = MainConf.GetRegionHandle(Conf.Sim);
+            if (Conf.SimHandle != 0) return;
+
+            if (!Client.Grid.GetGridRegion(Conf.Sim, GridLayerType.Objects, out var region)) return;
+            
+            Conf.SimHandle = region.RegionHandle;
+            MainConf.UpdateRegionHandle(Conf.Sim, Conf.SimHandle);
         }
 
-        public bool Login()
+        private void Login()
         {
             lock (_lock)
             {
-                if (LoggingIn)
+                if (_loggingIn)
                 {
-                    return false;
+                    return;
                 }
-                LoggingIn = true;
+                _loggingIn = true;
             }
             StatusMsg("Logging in " + Conf.Name);
 
@@ -612,18 +615,17 @@ namespace WoofBot
             {
                 InitializeClient();
                 LoginParams param = Client.Network.DefaultLoginParams(Conf.FirstName, Conf.LastName, Conf.Password, "WoofBot", Program.Version);
-                param.URI = Conf.LoginURI;
+                param.URI = Conf.LoginUri;
                 param.Start = "last";
                 if (Client.Network.Login(param))
                 {
                     UpdateSimHandle();
                 }
-                LoggingIn = false;
+                _loggingIn = false;
             });
-            return true;
         }
 
-        public void Logout()
+        private void Logout()
         {
             Persistent = false;
             Client.Network.Logout();

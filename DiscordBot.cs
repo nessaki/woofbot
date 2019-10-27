@@ -63,19 +63,26 @@ namespace WoofBot
 
         private Task Log(LogMessage msg)
         {
-            Func<LogSeverity, Helpers.LogLevel> ToLogLevel = s =>
+            Helpers.LogLevel ToLogLevel(LogSeverity s)
             {
                 switch (s)
                 {
-                    case LogSeverity.Verbose: case LogSeverity.Debug: return Helpers.LogLevel.Debug;
-                    case LogSeverity.Error: return Helpers.LogLevel.Error;
-                    case LogSeverity.Warning: return Helpers.LogLevel.Warning;
-                    case LogSeverity.Info: return Helpers.LogLevel.Info;
+                    case LogSeverity.Verbose:
+                    case LogSeverity.Debug:
+                        return Helpers.LogLevel.Debug;
+                    case LogSeverity.Error:
+                        return Helpers.LogLevel.Error;
+                    case LogSeverity.Warning:
+                        return Helpers.LogLevel.Warning;
+                    case LogSeverity.Info:
+                        return Helpers.LogLevel.Info;
                 }
+
                 return Helpers.LogLevel.None;
-            };
+            }
+
             // Run the log in it's own thread
-            Task.Run(() => Logger.Log($"[Discord:{Conf.ID}] {msg.Message}", ToLogLevel(msg.Severity)));
+            Task.Run(() => Logger.Log($"[Discord:{Conf.Id}] {msg.Message}", ToLogLevel(msg.Severity)));
             return Task.CompletedTask;
         }
 
@@ -107,7 +114,7 @@ namespace WoofBot
 
         private Task Client_Disconnected(Exception arg)
         {
-            Task.Run(() => Logger.Log($"[Discord:{Conf.ID}] Disconnected ({arg.Message})", Helpers.LogLevel.Warning));
+            Task.Run(() => Logger.Log($"[Discord:{Conf.Id}] Disconnected ({arg.Message})", Helpers.LogLevel.Warning));
             return Task.CompletedTask;
         }
 
@@ -142,8 +149,8 @@ namespace WoofBot
             foreach (var m in msg.Attachments)
                 text += (text.Length == 0 ? "" : "\n") + m.Url;
 
-            MainProgram.RelayMessage(Program.EBridgeType.DISCORD,
-                b => b.DiscordServerConf == Conf && Conf.Channels.Any(c => c.Key == b.DiscordChannelID && c.Value == msg.Channel.Id),
+            MainProgram.RelayMessage(Program.EBridgeType.Discord,
+                b => b.DiscordServerConf == Conf && Conf.Channels.Any(c => c.Key == b.DiscordChannelId && c.Value == msg.Channel.Id),
                 from, text);
         }
 
@@ -175,7 +182,7 @@ namespace WoofBot
         {
             if (IsConnected())
             {
-                if (Conf.Channels.TryGetValue(bridge.DiscordChannelID, out ulong confChan))
+                if (Conf.Channels.TryGetValue(bridge.DiscordChannelId, out ulong confChan))
                 {
                     bool action = msg.StartsWith("/me ") || msg.StartsWith("/me'");
                     Task.Run(() => RelayMessageAsync(bridge, (SocketTextChannel)Client.GetChannel(confChan), action ? $"*{from}{msg.Substring(3)}*" : $"{from}: {msg}"));

@@ -54,7 +54,7 @@ namespace WoofBot
         public static IrcServerInfo Create(TomlTable conf, string id)
             => new IrcServerInfo()
             {
-                ID = id,
+                Id = id,
                 ServerHost = (string)conf["irc_server"],
                 ServerPort = conf.ContainsKey("irc_port") ? (int)(long)conf["irc_port"] : 6667,
                 Nick = (string)conf["irc_nick"],
@@ -64,10 +64,9 @@ namespace WoofBot
 
     public class IrcBot : IDisposable, IRelay
     {
-        Program MainProgram;
+        private Program MainProgram;
         public IrcServerInfo Conf;
         public AInfo GetConf() => Conf;
-        Configuration MainConf;
 
 
         /*
@@ -80,7 +79,7 @@ namespace WoofBot
             AutoRetryDelay = 30,
          */
 
-        public StandardIrcClient irc = new StandardIrcClient()
+        private StandardIrcClient _irc = new StandardIrcClient()
         {
             FloodPreventer = new IrcStandardFloodPreventer(4, 2000),
             TextEncoding = Encoding.UTF8
@@ -90,10 +89,8 @@ namespace WoofBot
         {
             MainProgram = p;
             Conf = c;
-            MainConf = m;
-            irc.RawMessageReceived += Irc_OnRawMessage;
-            irc.Connected += Irc_OnConnected;
-            irc.Registered += Irc_Registered;
+            _irc.Connected += Irc_OnConnected;
+            _irc.Registered += Irc_Registered;
         }
 
         private void Irc_Registered(object sender, EventArgs e)
@@ -125,21 +122,17 @@ namespace WoofBot
 
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                if (irc != null)
-                {
-                    if (irc.IsConnected)
-                        irc.Quit(1000, "quiting");
-                    irc.Dispose();
-                    irc = null;
-                }
-            }
+            if (!disposing || _irc == null) return;
+
+            if (_irc.IsConnected)
+                _irc.Quit(1000, "quiting");
+            _irc.Dispose();
+            _irc = null;
         }
 
-        public bool IsConnected() => irc != null && irc.IsConnected;
+        public bool IsConnected() => _irc != null && _irc.IsConnected;
 
-        List<string> SplitMessage(string message)
+        private List<string> SplitMessage(string message)
         {
             var ret = new List<string>();
             var lines = Regex.Split(message, "\n+");
@@ -147,18 +140,17 @@ namespace WoofBot
             foreach (var line in lines)
             {
                 var words = line.Split(' ');
-                var outstr = string.Empty;
+                var s = string.Empty;
 
                 foreach (var word in words)
                 {
-                    outstr += $"{word} ";
-                    if (outstr.Length > 380)
-                    {
-                        ret.Add(outstr.Trim());
-                        outstr = string.Empty;
-                    }
+                    s += $"{word} ";
+                    if (s.Length <= 380) continue;
+                    
+                    ret.Add(s.Trim());
+                    s = string.Empty;
                 }
-                ret.Add(outstr.Trim());
+                ret.Add(s.Trim());
             }
 
             return ret;
@@ -167,19 +159,18 @@ namespace WoofBot
         public void RelayMessage(BridgeInfo bridge, string from, string msg)
             => ThreadPool.QueueUserWorkItem(sync =>
             {
-                if (IsConnected() && Conf.Channels.TryGetValue(bridge.IrcChanID, out string chan))
-                {
-                    var channel = irc.Channels.First(c => c.Name.Equals(chan, StringComparison.OrdinalIgnoreCase));
-                    bool emote = msg.StartsWith("/me ");
-                    SplitMessage(emote ? msg.Substring(3) : msg).ForEach(line =>
-                         irc.LocalUser.SendMessage(channel, $"{from}{(emote ? "" : ":")} {line}"));
-                }
+                if (!IsConnected() || !Conf.Channels.TryGetValue(bridge.IrcChanId, out string chan)) return;
+                
+                var channel = _irc.Channels.First(c => c.Name.Equals(chan, StringComparison.OrdinalIgnoreCase));
+                var emote = msg.StartsWith("/me ");
+                SplitMessage(emote ? msg.Substring(3) : msg).ForEach(line =>
+                    _irc.LocalUser.SendMessage(channel, $"{@from}{(emote ? "" : ":")} {line}"));
             });
 
-        void Irc_OnConnected(object sender, EventArgs e)
-            => PrintMsg("IRC - " + Conf.ID, "Connected");
+        private void Irc_OnConnected(object sender, EventArgs e)
+            => PrintMsg("IRC - " + Conf.Id, "Connected");
 
-        void MessageRelayCommon(IrcChannel channel, IrcMessageEventArgs e, string actionmsg = null, bool action = false)
+        private void MessageRelayCommon(IrcChannel channel, IrcMessageEventArgs e, string actionmsg = null, bool action = false)
         {
             if (e.Source is IrcUser)
             {
@@ -195,24 +186,19 @@ namespace WoofBot
                     botmsg = $"{(action ? "/me " : "")}{m.Groups["msg"]}";
                 }
 
-                MainProgram.RelayMessage(Program.EBridgeType.IRC,
-                    b => b.IrcServerConf == Conf && Conf.Channels.Any(pair => pair.Key == b.IrcChanID && pair.Value.Equals(channel.Name, StringComparison.OrdinalIgnoreCase)),
+                MainProgram.RelayMessage(Program.EBridgeType.Irc,
+                    b => b.IrcServerConf == Conf && Conf.Channels.Any(pair => pair.Key == b.IrcChanId && pair.Value.Equals(channel.Name, StringComparison.OrdinalIgnoreCase)),
                     from, msg, botfrom, botmsg);
             }
         }
 
-        void Irc_OnChannelMessage(object sender, IrcMessageEventArgs e)
+        private void Irc_OnChannelMessage(object sender, IrcMessageEventArgs e)
             => ThreadPool.QueueUserWorkItem(sync => MessageRelayCommon((IrcChannel)sender, e));
 
-        void Irc_OnChannelJoin(object sender, IrcChannelUserEventArgs e)
-            => PrintMsg("IRC - " + Conf.ID, $"{((IrcChannel)sender).Name} joined {e.ChannelUser.User.UserName}");
+        private void Irc_OnChannelJoin(object sender, IrcChannelUserEventArgs e)
+            => PrintMsg("IRC - " + Conf.Id, $"{((IrcChannel)sender).Name} joined {e.ChannelUser.User.UserName}");
 
-        void Irc_OnRawMessage(object sender, IrcRawMessageEventArgs e)
-        {
-            //PrintMsg(e.Message.Source.Name, $"({e.Message.Prefix}) {e.Message}");
-        }
-
-        void PrintMsg(string from, string msg)
+        private static void PrintMsg(string from, string msg)
             => Console.WriteLine($"{from}: {msg}");
 
         public void Connect()
@@ -224,26 +210,31 @@ namespace WoofBot
                 RealName = "WoofBot"
             };
 
-            PrintMsg("IRC - " + Conf.ID, "Connecting...");
+            PrintMsg("IRC - " + Conf.Id, "Connecting...");
 
             try
             {
                 using (var connectedEvent = new ManualResetEventSlim(false))
                 {
-                    irc.Connected += (sender, e) => connectedEvent.Set();
+                    // ReSharper disable once AccessToDisposedClosure
+                    void Handler(object sender, EventArgs e) => connectedEvent.Set();
+                    _irc.Connected += Handler;
                     // FIXME: IrcDotNet seems to only support IPv4...
                     var endpoint = new DnsEndPoint(Conf.ServerHost, Conf.ServerPort, System.Net.Sockets.AddressFamily.InterNetwork);
-                    irc.Connect(endpoint, false, info);
+                    _irc.Connect(endpoint, false, info);
                     PrintMsg("System", "Logging in...");
                     if (!connectedEvent.Wait(10000))
                     {
-                        irc.Dispose();
-                        irc = null;
+                        _irc.Dispose();
+                        _irc = null;
                         PrintMsg("System", "Failed to login to irc server");
                         return;
                     }
+
+                    _irc.Connected -= Handler;
+                    
                     foreach (var c in Conf.Channels.Values)
-                        irc.Channels.Join(c);
+                        _irc.Channels.Join(c);
                 }
             }
             catch (Exception ex)

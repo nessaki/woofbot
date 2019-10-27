@@ -5,6 +5,8 @@ obj/
 *.swp
 *.user
 
+.idea
+
 woofbot.toml
 
 # NuGet Packages
