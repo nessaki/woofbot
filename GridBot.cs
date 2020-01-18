@@ -34,6 +34,7 @@
 
 using OpenMetaverse;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using Tomlyn.Model;
@@ -95,6 +96,8 @@ namespace WoofBot
 
     public sealed class GridBot : IDisposable, IRelay
     {
+        private const int MaxMsgStringSize = 1023;
+
         public GridClient Client = new GridClient();
         public BotInfo Conf;
         public AInfo GetConf() => Conf;
@@ -156,7 +159,7 @@ namespace WoofBot
                 {
                     Enabled = false
                 };
-                networkChecker.Elapsed += new System.Timers.ElapsedEventHandler(NetworkChecker_Elapsed);
+                networkChecker.Elapsed += NetworkChecker_Elapsed;
             }
 
             if (!string.IsNullOrEmpty(Conf.Sim) && positionChecker == null)
@@ -165,7 +168,7 @@ namespace WoofBot
                 {
                     Enabled = false
                 };
-                positionChecker.Elapsed += new System.Timers.ElapsedEventHandler(PositionChecker_Elapsed);
+                positionChecker.Elapsed += PositionChecker_Elapsed;
             }
 
             Login();
@@ -397,7 +400,7 @@ namespace WoofBot
         {
             if (e.FromName == Client.Self.Name) return;
             string name = Strip(e.FromName);
-            string begin = string.Empty;
+            string begin;
             switch (e.Type)
             {
                 case ChatType.StartTyping:
@@ -431,7 +434,8 @@ namespace WoofBot
 
             ThreadPool.QueueUserWorkItem(sync =>
             {
-                void FormatMsg() => msg = $"{@from}{(msg.StartsWith("/me ") ? msg.Substring(3) : $": {msg}")}";
+                var ircEmote = msg.StartsWith("/me ");
+                void FormatMsg() => msg = $"{@from}{(ircEmote ? msg.Substring(3) : $": {msg}")}";
                 if (bridge.GridGroup == null) // null is local
                 {
                     var type = ChatType.Normal;
@@ -471,7 +475,21 @@ namespace WoofBot
                 }
                 if (success)
                 {
-                    Client.Self.InstantMessageGroup(groupID, msg);
+                    var chunkSize = MaxMsgStringSize;
+                    if (ircEmote) // add remove for ircEmote
+                        chunkSize -= "/me ".Length;
+                    var split = Enumerable.Range(0, (int) Math.Ceiling(msg.Length / (double)chunkSize))
+                        .Select(i =>
+                        {
+                            var substr = msg.Substring(i * chunkSize, chunkSize);
+                            if (ircEmote && i > 0)
+                                substr = "/me " + substr;
+                            return substr;
+                        });
+                    foreach (var message in split)
+                    {
+                        Client.Self.InstantMessageGroup(groupID, message);
+                    }
                 }
                 else
                 {
