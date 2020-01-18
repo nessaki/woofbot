@@ -476,15 +476,11 @@ namespace WoofBot
                 if (success)
                 {
                     var chunkSize = MaxMsgStringSize;
-                    if (ircEmote) // add remove for ircEmote
-                        chunkSize -= "/me ".Length;
                     var split = Enumerable.Range(0, (int) Math.Ceiling(msg.Length / (double)chunkSize))
                         .Select(i =>
                         {
                             var substr = msg.Substring(i * chunkSize, 
                                 Math.Min(msg.Length - (i * chunkSize), chunkSize));
-                            if (ircEmote && i > 0)
-                                substr = "/me " + substr;
                             return substr;
                         });
                     foreach (var message in split)
