@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-env
+FROM mcr.microsoft.com/dotnet/core/sdk:5.0 AS build-env
 WORKDIR /app
 
 # TODO: make this work for faster builds..
@@ -8,9 +8,10 @@ WORKDIR /app
 COPY . ./
 RUN dotnet publish -c Release -o out
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1
+FROM mcr.microsoft.com/dotnet/core/runtime:5.0
 WORKDIR /app
 COPY --from=build-env /app/out .
+ENV DOTNET_EnableDiagnostics=0
 ENV WOOFBOT_AUTO_LIFETIME=true
 #ENV WOOFBOT_CONFIG_PATH=
 ENTRYPOINT ["dotnet", "WoofBot.dll"]
