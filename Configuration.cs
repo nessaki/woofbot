@@ -83,18 +83,24 @@ namespace WoofBot
         public static BridgeInfo Create(TomlTable conf, string id)
         {
             UUID? groupId = null;
-            if (conf.ContainsKey("grid_group"))
+            if (conf.TryGetValue("grid_group", out var gridgroupvalue))
             {
-                var str = (string)conf["grid_group"];
+                var str = (string)gridgroupvalue;
                 if (!str.Equals("local"))
                     try { groupId = UUID.Parse(str); } catch { /* ignored */ }
             }
             else groupId = UUID.Zero;
-
+            
+            var ircChanId = string.Empty;
+            if (conf.TryGetValue("ircchan", out var ircchanvalue))
+            {
+                ircChanId = (string) ircchanvalue;
+            }
+            
             var bi = new BridgeInfo()
             {
                 Id = id,
-                IrcChanId = (string)conf["ircchan"],
+                IrcChanId = ircChanId,
                 GridGroup = groupId,
 #if SLACK
                 SlackChannelID = conf.GetString("slackchannel"),
